@@ -16,8 +16,9 @@ set /p comments= 本地提交说明:
 echo [%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline% >> history.txt
 echo %lastLine% >> ver.txt
 
+git add -u
 git commit -m "[%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline%"
-
 git log --stat -1
+
 echo "Finished Add!"
 pause
