@@ -13,10 +13,10 @@ echo 类型参考：^<New:新增、Edit:修改、Dev:用户文件、Revert:回滚^>
 echo 书写格式参考：New:说明内容
 echo.
 set /p comments= 本地提交说明: 
-echo [%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline%" >> history.txt
+echo [%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline% >> history.txt
 echo %lastLine% >> ver.txt
 
-git commit -m "[%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline%""
+git commit -m "[%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline%"
 
 git log --stat -1
 echo "Finished Add!"
