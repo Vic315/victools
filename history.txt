@@ -1,0 +1,2 @@
+[22-08-30 周二 16:57:11] commit: Fist Commit (VICPC) v1 
+[22-08-30 周二 16:59:40] commit: update Ver txt (VICPC) v2 
