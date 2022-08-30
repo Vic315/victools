@@ -16,7 +16,8 @@ set /p comments= 本地提交说明:
 echo [%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline% >> history.txt
 echo %lastLine% >> ver.txt
  
-
+git add ver.txt
+git add history.txt
 git commit -m "[%timestamp%] commit: %comments% (%COMPUTERNAME%) v%lastline%"
 
 git log --stat -1
