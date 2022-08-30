@@ -1,0 +1,22 @@
+{
+  "FileVersion": 3,
+  "FriendlyName": "SceneTools_W_P",
+  "Description": "",
+  "Category": "Other",
+  "CreatedBy": "Vic",
+  "CreatedByURL": "",
+  "DocsURL": "https://idreamsky.feishu.cn/docs/doccnST6fT8u8l1yxEtdUpITXFf",
+  "MarketplaceURL": "",
+  "SupportURL": "",
+  "CanContainContent": false,
+  "IsBetaVersion": false,
+  "IsExperimentalVersion": false,
+  "Installed": false,
+  "Modules": [
+    {
+      "Name": "SceneTools_W_P",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
