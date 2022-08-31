@@ -2,3 +2,4 @@
 [22-08-30 周二 16:59:40] commit: update Ver txt (VICPC) v2 
 [22-08-30 周二 17:00:24] commit: update (VICPC) v3 
 [22-08-31 周三 16:06:20] commit: 备份启动文件，排除默认启动文件 (VIC-ZENG-I9) v4 
+[22-08-31 周三 16:13:32] commit: 移除启动文件跟踪 (VIC-ZENG-I9) v5 
