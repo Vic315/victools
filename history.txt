@@ -4,3 +4,4 @@
 [22-08-31 周三 16:06:20] commit: 备份启动文件，排除默认启动文件 (VIC-ZENG-I9) v4 
 [22-08-31 周三 16:13:32] commit: 移除启动文件跟踪 (VIC-ZENG-I9) v5 
 [22-08-31 周三 16:16:21] commit: 移除sln (VIC-ZENG-I9) v6 
+[22-09-01 周四 11:35:19] commit: 隐藏ver (VICPC) v7 
