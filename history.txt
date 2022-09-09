@@ -5,3 +5,4 @@
 [22-08-31 周三 16:13:32] commit: 移除启动文件跟踪 (VIC-ZENG-I9) v5 
 [22-08-31 周三 16:16:21] commit: 移除sln (VIC-ZENG-I9) v6 
 [22-09-01 周四 11:35:19] commit: 隐藏ver (VICPC) v7 
+[22-09-09 周五 18:19:22] commit: (Content根目录搜索bug修复)v1.7.2 (VICPC) v8 

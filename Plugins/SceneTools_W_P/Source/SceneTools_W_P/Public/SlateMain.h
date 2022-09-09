@@ -39,6 +39,7 @@ class SSlateMain :public SCompoundWidget {
 		FReply AlignPosClicked();
 		FReply AlignRotClicked();
 		FReply AlignSclClicked();
+		FReply SeachAdjustmentTexture(); //搜索Adjustment修改过的贴图
 		FReply OnGoButtonClicked();	//按鈕事件聲明
 		FReply OnGoMapButtonClicked();	//按鈕事件聲明
 		bool DiffPathText(FString path);	//檢查路徑是否存在
@@ -56,6 +57,7 @@ class SSlateMain :public SCompoundWidget {
 	public:
 		TSharedPtr<class SExpandableArea> Expnv12;
 		TSharedPtr<class SEditableTextBox> texPath;
+		TSharedPtr<class SEditableTextBox> suffixSeach;
 		TSharedPtr<class SEditableTextBox> texComp;//CompressionSettings text
 		
 	protected:
