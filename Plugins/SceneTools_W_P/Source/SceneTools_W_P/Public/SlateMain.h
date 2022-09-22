@@ -54,8 +54,10 @@ class SSlateMain :public SCompoundWidget {
 		bool WriteTxt(FString savestring, FString PN);
 		
 		FReply SaveButtom();
+		FReply TTTButtom();
 	public:
 		TSharedPtr<class SExpandableArea> Expnv12;
+		TSharedPtr<class SExpandableArea> Expnv1;
 		TSharedPtr<class SEditableTextBox> texPath;
 		TSharedPtr<class SEditableTextBox> suffixSeach;
 		TSharedPtr<class SEditableTextBox> texComp;//CompressionSettings text

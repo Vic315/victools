@@ -22,7 +22,7 @@
 #include "Widgets/Layout/SBox.h"
 //#include "Widgets/SWidget.h"
 //#include "EditorStyleSet.h"
-
+#include "IContentBrowserSingleton.h"
 #define LOCTEXT_NAMESPACE "SlateMain"
 
 FString pppp; //全局变量
@@ -60,7 +60,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
 		+ SVerticalBox::Slot().AutoHeight()
 		                      .Padding(2.0f) //间距
 		[
-			SNew(SExpandableArea) //可折疊面板
+			SAssignNew(Expnv1,SExpandableArea) //可折疊面板
 			.AreaTitle(LOCTEXT("MyExpandable", "Scene Tools"))
 			.InitiallyCollapsed(true)
 			.Padding(2.0f)
@@ -96,11 +96,19 @@ void SSlateMain::Construct(const FArguments& InArgs)
 				]
 				+ SHorizontalBox::Slot()
 				  .HAlign(HAlign_Left)
-				  .Padding(4.f)
+				  .Padding(2.f)
 				[
 					SNew(SButton).Text(LOCTEXT("savePath", "Save"))
 					             .ToolTipText(LOCTEXT("save", "保存當前路徑(填Content后的路径,前后都不要有斜杠!)"))
 					             .OnClicked(this, &SSlateMain::SaveButtom)
+				]
+				+ SHorizontalBox::Slot()
+				  .HAlign(HAlign_Right)
+				  .Padding(2.f)
+				[
+					SNew(SButton).Text(LOCTEXT("test", "TTT"))
+					             .ToolTipText(LOCTEXT("title", "ttttt"))
+					             .OnClicked(this, &SSlateMain::TTTButtom)
 				]
 				+ SHorizontalBox::Slot()
 				  .HAlign(HAlign_Right).AutoWidth()
@@ -176,219 +184,219 @@ void SSlateMain::Construct(const FArguments& InArgs)
 						SAssignNew(suffixSeach, SEditableTextBox).Text(FText::FromString("")).MinDesiredWidth(30)
 					]
 				]
-
-				//层级与对齐 垂直折叠面板
-				+ SVerticalBox::Slot().AutoHeight()
-				                      .Padding(2.0f) //间距
-				[
-					SAssignNew(Expnv12, SExpandableArea) //可折疊面板
-					.AreaTitle(LOCTEXT("v12expn", "AlignParent"))
-				.InitiallyCollapsed(true)
-				.Padding(2.0f)
-				.HeaderContent()
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						  .HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(30.0f)
-						  .Padding(2.0f)[
-							SNew(STextBlock).Text(LOCTEXT("v12", "层级与对齐："))
-						]
-						+ SHorizontalBox::Slot()
-						  .HAlign(HAlign_Center).VAlign(VAlign_Center).FillWidth(40.0f)
-						  .Padding(2.0f)[
-							//SNew(STextBlock).Text(FText::FromString("Parent and Align:"))
-
-							SNew(SButton)
-					.Text(LOCTEXT("ttttt", "  - collapse -  "))
-					.OnClicked(this, &SSlateMain::testClicked)
-						]
-					].BodyContent()[
-						SNew(SVerticalBox)
-						+ SVerticalBox::Slot().AutoHeight()
-						                      .Padding(2.0f) //间距
-						[
-							SNew(SHorizontalBox)
-
-							+ SHorizontalBox::Slot()
-							  .HAlign(HAlign_Left).Padding(5.0f)
-							[
-								SNew(SButton)
-				.Text(LOCTEXT("parent", "设置父子层级"))
-				.ToolTipText(LOCTEXT("parentTT", "选择要设置层级关系的物体，最后选择的为父物体"))
-				.OnClicked(this, &SSlateMain::ParentHelpClicked)
-							]
-							+ SHorizontalBox::Slot()
-							  .HAlign(HAlign_Right).VAlign(VAlign_Center).AutoWidth().Padding(2.0f)
-							[
-								SNew(STextBlock).Text(LOCTEXT("align", "变换匹配:"))
-							]
-							+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
-							                        .HAlign(HAlign_Right).Padding(2.0f)
-							[
-								SNew(SButton)
-				.Text(LOCTEXT("alignPos", "Location")).VAlign(VAlign_Center)
-				.ToolTipText(LOCTEXT("alignPosTT", "对齐物体（位移）到最后选择的物体"))
-				.OnClicked(this, &SSlateMain::AlignPosClicked)
-							]
-							+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
-							                        .HAlign(HAlign_Right).Padding(2.0f)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("alignRot", "Rotation"))
-				.ToolTipText(LOCTEXT("alignRotTT", "对齐物体（旋转）到最后选择的物体，右边值大于‘0’将取随机角度"))
-				.OnClicked(this, &SSlateMain::AlignRotClicked)
-							]
-							+ SHorizontalBox::Slot().VAlign(VAlign_Center)
-							                        .HAlign(HAlign_Left).AutoWidth().Padding(2.0f)
-							[
-								SAssignNew(randomAngle, SSpinBox<int>).MaxValue(360).MinValue(0).Value(0).ToolTipText(
-									LOCTEXT("randval", "值大于‘0’将按该值随机角度旋转"))
-							]
-							+ SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
-							                        .HAlign(HAlign_Right).Padding(2.0f)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("alignSel", "Scale"))
-				.ToolTipText(LOCTEXT("alignSclTT", "对齐物体（缩放）到最后选择的物体"))
-				.OnClicked(this, &SSlateMain::AlignSclClicked)
-							]
-						]
-						+ SVerticalBox::Slot().AutoHeight()
-						                      .Padding(2.0f)
-						[
-							SNew(SUniformGridPanel).SlotPadding(3.0f)
-
-							+ SUniformGridPanel::Slot(0, 0)
-							  .HAlign(HAlign_Center).VAlign(VAlign_Center)
-							[SNew(STextBlock).Text(LOCTEXT("spacing", "物体间距"))
-							]
-							+ SUniformGridPanel::Slot(1, 0)
-							  .HAlign(HAlign_Center).VAlign(VAlign_Center)
-							[SNew(STextBlock).Text(LOCTEXT("mo", "行数"))
-							]
-							+ SUniformGridPanel::Slot(2, 0)
-							  .HAlign(HAlign_Center).VAlign(VAlign_Center)
-							[SNew(STextBlock).Text(LOCTEXT("moSp", "行间距"))
-							]
-							+ SUniformGridPanel::Slot(0, 2)
-							  .HAlign(HAlign_Center).VAlign(VAlign_Center)
-							[SNew(STextBlock).Text(LOCTEXT("arrTT", "排列对齐:"))
-							]
-							+ SUniformGridPanel::Slot(0, 1)
-							  .HAlign(HAlign_Fill).VAlign(VAlign_Center)
-							[
-								SAssignNew(arraySpace, SSpinBox<int>).MaxValue(900).MinValue(-600).Value(0)
-
-							]
-							+ SUniformGridPanel::Slot(1, 1)
-							  .HAlign(HAlign_Fill).VAlign(VAlign_Center)
-							[
-								SAssignNew(arrayRow, SSpinBox<int>).MaxValue(10).MinValue(1).Value(1)
-							]
-							+ SUniformGridPanel::Slot(2, 1)
-							  .HAlign(HAlign_Fill).VAlign(VAlign_Center)
-							[
-								SAssignNew(arrayRowSp, SSpinBox<int>).MaxValue(2000).MinValue(-2000).Value(0)
-							]
-							+ SUniformGridPanel::Slot(1, 2)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("aX", "[X]■■■"))
-					.ToolTipText(LOCTEXT("aXtt", "按 X 轴排列"))
-					.OnClicked(this, &SSlateMain::XArray_Clicked)
-							]
-							+ SUniformGridPanel::Slot(2, 2)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("aY", "[Y]■■■"))
-					.ToolTipText(LOCTEXT("aYtt", "按 Y 轴排列"))
-					.OnClicked(this, &SSlateMain::YArray_Clicked)
-							]
-							//----------------------------
-							+ SUniformGridPanel::Slot(3, 0)
-							  .HAlign(HAlign_Center).VAlign(VAlign_Center)
-							[SNew(STextBlock).Text(LOCTEXT("bound", "边界对齐:"))
-							]
-							+ SUniformGridPanel::Slot(4, 0)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("Xadd", "X←"))
-					.ToolTipText(LOCTEXT("Xo", "对齐至X轴边界"))
-					.OnClicked(this, &SSlateMain::XoAlignX_Clicked)
-							]
-							+ SUniformGridPanel::Slot(6, 0)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("-Xadd", "→X"))
-					.ToolTipText(LOCTEXT("oX", "对齐至-X轴边界"))
-				.OnClicked(this, &SSlateMain::oXAlignX_Clicked)
-							]
-							+ SUniformGridPanel::Slot(5, 0)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("cXadd", "→X←"))
-					.ToolTipText(LOCTEXT("oXo", "对齐至X轴中间"))
-				.OnClicked(this, &SSlateMain::oXoAlignX_Clicked)
-							]
-
-							+ SUniformGridPanel::Slot(4, 1)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("Yadd", "Y←"))
-					.ToolTipText(LOCTEXT("Yo", "对齐至Y轴边界"))
-				.OnClicked(this, &SSlateMain::YoAlignY_Clicked)
-							]
-							+ SUniformGridPanel::Slot(6, 1)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("-Yadd", "→Y"))
-					.ToolTipText(LOCTEXT("oY", "对齐至-Y轴边界"))
-				.OnClicked(this, &SSlateMain::oYAlignY_Clicked)
-							]
-							+ SUniformGridPanel::Slot(5, 1)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("cYadd", "→Y←"))
-					.ToolTipText(LOCTEXT("oYo", "对齐至Y轴中间"))
-				.OnClicked(this, &SSlateMain::oYoAlignY_Clicked)
-							]
-
-							+ SUniformGridPanel::Slot(4, 2)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("Zadd", "Z←"))
-					.ToolTipText(LOCTEXT("Zo", "对齐至Z轴边界"))
-				.OnClicked(this, &SSlateMain::ZoAlignZ_Clicked)
-							]
-							+ SUniformGridPanel::Slot(6, 2)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("-Zadd", "→Z"))
-					.ToolTipText(LOCTEXT("oZ", "对齐至-Z轴边界"))
-				.OnClicked(this, &SSlateMain::oZAlignZ_Clicked)
-							]
-							+ SUniformGridPanel::Slot(5, 2)
-							.HAlign(HAlign_Fill)
-							[
-								SNew(SButton)
-					.Text(LOCTEXT("cZadd", "→Z←"))
-					.ToolTipText(LOCTEXT("oZo", "对齐至Z轴中间"))
-				.OnClicked(this, &SSlateMain::oZoAlignZ_Clicked)
-							]
-						]
-					]
-				]]]];
+				]
+				]//层级与对齐 垂直折叠面板
+                + SVerticalBox::Slot().AutoHeight()
+                                      .Padding(2.0f) //间距
+                [
+                    SAssignNew(Expnv12, SExpandableArea) //可折疊面板
+                    .AreaTitle(LOCTEXT("v12expn", "AlignParent"))
+                .InitiallyCollapsed(true)
+                .Padding(2.0f)
+                .HeaderContent()
+                    [
+                        SNew(SHorizontalBox)
+  
+                        + SHorizontalBox::Slot()
+                          .HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(30.0f)
+                          .Padding(2.0f)[
+                            SNew(STextBlock).Text(LOCTEXT("v12", "层级与对齐："))
+                        ]
+                        + SHorizontalBox::Slot()
+                          .HAlign(HAlign_Center).VAlign(VAlign_Center).FillWidth(40.0f)
+                          .Padding(2.0f)[
+                            //SNew(STextBlock).Text(FText::FromString("Parent and Align:"))
+  
+                            SNew(SButton)
+                    .Text(LOCTEXT("ttttt", "  - collapse -  "))
+                    .OnClicked(this, &SSlateMain::testClicked)
+                        ]
+                    ].BodyContent()[
+                        SNew(SVerticalBox)
+                        + SVerticalBox::Slot().AutoHeight()
+                                              .Padding(2.0f) //间距
+                        [
+                            SNew(SHorizontalBox)
+  
+                            + SHorizontalBox::Slot()
+                              .HAlign(HAlign_Left).Padding(5.0f)
+                            [
+                                SNew(SButton)
+                .Text(LOCTEXT("parent", "设置父子层级"))
+                .ToolTipText(LOCTEXT("parentTT", "选择要设置层级关系的物体，最后选择的为父物体"))
+                .OnClicked(this, &SSlateMain::ParentHelpClicked)
+                            ]
+                            + SHorizontalBox::Slot()
+                              .HAlign(HAlign_Right).VAlign(VAlign_Center).AutoWidth().Padding(2.0f)
+                            [
+                                SNew(STextBlock).Text(LOCTEXT("align", "变换匹配:"))
+                            ]
+                            + SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
+                                                    .HAlign(HAlign_Right).Padding(2.0f)
+                            [
+                                SNew(SButton)
+                .Text(LOCTEXT("alignPos", "Location")).VAlign(VAlign_Center)
+                .ToolTipText(LOCTEXT("alignPosTT", "对齐物体（位移）到最后选择的物体"))
+                .OnClicked(this, &SSlateMain::AlignPosClicked)
+                            ]
+                            + SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
+                                                    .HAlign(HAlign_Right).Padding(2.0f)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("alignRot", "Rotation"))
+                .ToolTipText(LOCTEXT("alignRotTT", "对齐物体（旋转）到最后选择的物体，右边值大于‘0’将取随机角度"))
+                .OnClicked(this, &SSlateMain::AlignRotClicked)
+                            ]
+                            + SHorizontalBox::Slot().VAlign(VAlign_Center)
+                                                    .HAlign(HAlign_Left).AutoWidth().Padding(2.0f)
+                            [
+                                SAssignNew(randomAngle, SSpinBox<int>).MaxValue(360).MinValue(0).Value(0).ToolTipText(
+                                  	LOCTEXT("randval", "值大于‘0’将按该值随机角度旋转"))
+                            ]
+                            + SHorizontalBox::Slot().VAlign(VAlign_Center).AutoWidth()
+                                                    .HAlign(HAlign_Right).Padding(2.0f)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("alignSel", "Scale"))
+                .ToolTipText(LOCTEXT("alignSclTT", "对齐物体（缩放）到最后选择的物体"))
+                .OnClicked(this, &SSlateMain::AlignSclClicked)
+                            ]
+                        ]
+                        + SVerticalBox::Slot().AutoHeight()
+                                              .Padding(2.0f)
+                        [
+                            SNew(SUniformGridPanel).SlotPadding(3.0f)
+  
+                            + SUniformGridPanel::Slot(0, 0)
+                              .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            [SNew(STextBlock).Text(LOCTEXT("spacing", "物体间距"))
+                            ]
+                            + SUniformGridPanel::Slot(1, 0)
+                              .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            [SNew(STextBlock).Text(LOCTEXT("mo", "行数"))
+                            ]
+                            + SUniformGridPanel::Slot(2, 0)
+                              .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            [SNew(STextBlock).Text(LOCTEXT("moSp", "行间距"))
+                            ]
+                            + SUniformGridPanel::Slot(0, 2)
+                              .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            [SNew(STextBlock).Text(LOCTEXT("arrTT", "排列对齐:"))
+                            ]
+                            + SUniformGridPanel::Slot(0, 1)
+                              .HAlign(HAlign_Fill).VAlign(VAlign_Center)
+                            [
+                                SAssignNew(arraySpace, SSpinBox<int>).MaxValue(900).MinValue(-600).Value(0)
+  
+                            ]
+                            + SUniformGridPanel::Slot(1, 1)
+                              .HAlign(HAlign_Fill).VAlign(VAlign_Center)
+                            [
+                                SAssignNew(arrayRow, SSpinBox<int>).MaxValue(10).MinValue(1).Value(1)
+                            ]
+                            + SUniformGridPanel::Slot(2, 1)
+                              .HAlign(HAlign_Fill).VAlign(VAlign_Center)
+                            [
+                                SAssignNew(arrayRowSp, SSpinBox<int>).MaxValue(2000).MinValue(-2000).Value(0)
+                            ]
+                            + SUniformGridPanel::Slot(1, 2)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("aX", "[X]■■■"))
+                    .ToolTipText(LOCTEXT("aXtt", "按 X 轴排列"))
+                    .OnClicked(this, &SSlateMain::XArray_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(2, 2)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("aY", "[Y]■■■"))
+                    .ToolTipText(LOCTEXT("aYtt", "按 Y 轴排列"))
+                    .OnClicked(this, &SSlateMain::YArray_Clicked)
+                            ]
+                            //----------------------------
+                            + SUniformGridPanel::Slot(3, 0)
+                              .HAlign(HAlign_Center).VAlign(VAlign_Center)
+                            [SNew(STextBlock).Text(LOCTEXT("bound", "边界对齐:"))
+                            ]
+                            + SUniformGridPanel::Slot(4, 0)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("Xadd", "X←"))
+                    .ToolTipText(LOCTEXT("Xo", "对齐至X轴边界"))
+                    .OnClicked(this, &SSlateMain::XoAlignX_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(6, 0)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("-Xadd", "→X"))
+                    .ToolTipText(LOCTEXT("oX", "对齐至-X轴边界"))
+                .OnClicked(this, &SSlateMain::oXAlignX_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(5, 0)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("cXadd", "→X←"))
+                    .ToolTipText(LOCTEXT("oXo", "对齐至X轴中间"))
+                .OnClicked(this, &SSlateMain::oXoAlignX_Clicked)
+                            ]
+  
+                            + SUniformGridPanel::Slot(4, 1)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("Yadd", "Y←"))
+                    .ToolTipText(LOCTEXT("Yo", "对齐至Y轴边界"))
+                .OnClicked(this, &SSlateMain::YoAlignY_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(6, 1)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("-Yadd", "→Y"))
+                    .ToolTipText(LOCTEXT("oY", "对齐至-Y轴边界"))
+                .OnClicked(this, &SSlateMain::oYAlignY_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(5, 1)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("cYadd", "→Y←"))
+                    .ToolTipText(LOCTEXT("oYo", "对齐至Y轴中间"))
+                .OnClicked(this, &SSlateMain::oYoAlignY_Clicked)
+                            ]
+  
+                            + SUniformGridPanel::Slot(4, 2)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("Zadd", "Z←"))
+                    .ToolTipText(LOCTEXT("Zo", "对齐至Z轴边界"))
+                .OnClicked(this, &SSlateMain::ZoAlignZ_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(6, 2)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("-Zadd", "→Z"))
+                    .ToolTipText(LOCTEXT("oZ", "对齐至-Z轴边界"))
+                .OnClicked(this, &SSlateMain::oZAlignZ_Clicked)
+                            ]
+                            + SUniformGridPanel::Slot(5, 2)
+                            .HAlign(HAlign_Fill)
+                            [
+                                SNew(SButton)
+                    .Text(LOCTEXT("cZadd", "→Z←"))
+                    .ToolTipText(LOCTEXT("oZo", "对齐至Z轴中间"))
+                .OnClicked(this, &SSlateMain::oZoAlignZ_Clicked)
+                            ]
+                        ]
+                    ]
+				]];
 }
 
 FReply SSlateMain::testClicked()
@@ -415,10 +423,12 @@ FReply SSlateMain::testClicked()
 	if (Expnv12->IsExpanded())
 	{
 		Expnv12->SetExpanded(false);
+		Expnv1->SetExpanded(false);
 	}
 	else
 	{
 		Expnv12->SetExpanded(true);
+		Expnv1->SetExpanded(true);
 	}
 	//UE_LOG(LogTemp, Error, TEXT("test %i"), arrayRow);
 	return FReply::Handled();
@@ -1054,7 +1064,7 @@ FReply SSlateMain::AlignSclClicked()
 
 FReply SSlateMain::SeachAdjustmentTexture()
 {
-	FText const Title = LOCTEXT("title1","贴图批处理");
+	FText const Title = LOCTEXT("title1","贴图调整批处理");
 	FText const DialogText = LOCTEXT("queren","确认批处理重置贴图调整?");
 	EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
 	if (ReturnType == EAppReturnType::Type::Ok)
@@ -1153,61 +1163,154 @@ FReply SSlateMain::SeachAdjustmentTexture()
 	{
 		GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
 	}
-
-	
 	return FReply::Handled();
 }
 
 FReply SSlateMain::OnGoButtonClicked()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("AssetName:%s"), *MatObj->GetName());
-	TArray<FAssetData> AssetDatas;
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
-		FAssetRegistryModule>("AssetRegistry");
-	FARFilter Filter;
-	FString pp = texPath->GetText().ToString();
-	//查找路径是否是反斜杠，如果是切割并替换成正斜杠
-	if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
+	FText const Title = LOCTEXT("title2","法线贴图压缩设置批处理");
+	FText const DialogText = LOCTEXT("queren","确认批处理后缀名为\"_N\"的法线贴图压缩设置格式?");
+	EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
+	if (ReturnType == EAppReturnType::Type::Ok)
 	{
-		FString newP = "";
-		TArray<FString> SArr;
-		pp.ParseIntoArray(SArr, TEXT("\\"), false);
-		for (const FString sss : SArr)
+		TArray<FAssetData> AssetDatas;
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
+			FAssetRegistryModule>("AssetRegistry");
+		FARFilter Filter;
+		FString pp = texPath->GetText().ToString();
+		//查找路径是否是反斜杠，如果是切割并替换成正斜杠
+		if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
 		{
-			newP += sss + "/";
+			FString newP = "";
+			TArray<FString> SArr;
+			pp.ParseIntoArray(SArr, TEXT("\\"), false);
+			for (const FString sss : SArr)
+			{
+				newP += sss + "/";
+			}
+			pp = newP;
 		}
-		pp = newP;
-	}
-	FString en = pp.Right(1);
-	if (en == "/")
-		pp = pp.LeftChop(1);
-	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //需要FName類型字符 *FString 前面加星號解引出來使用
-	Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());
-	if (RPath->IsChecked())
-	{
-		//遞歸搜尋路徑，查找子目錄
-		Filter.bRecursivePaths = true;
-	}
-	else
-	{
-		Filter.bRecursivePaths = false;
-	}
-	Filter.bRecursiveClasses = true;
-	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
-
-	FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
-	GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
-	UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
-	int cou;
-	cou = 0;
-	for (const FAssetData& AssetData : AssetDatas)
-	{
-		UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
-		                                                   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
-		//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White, FString::FromInt(MatObj->CompressionSettings.GetValue()));
-		if (texComp->GetText().ToString() == "Default")
+		FString en = pp.Right(1);
+		if (en == "/")
+			pp = pp.LeftChop(1);
+		Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //需要FName類型字符 *FString 前面加星號解引出來使用
+		Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());
+		if (RPath->IsChecked())
 		{
-			if (MatObj->CompressionSettings.GetValue() == 1)
+			//遞歸搜尋路徑，查找子目錄
+			Filter.bRecursivePaths = true;
+		}
+		else
+		{
+			Filter.bRecursivePaths = false;
+		}
+		Filter.bRecursiveClasses = true;
+		AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+
+		FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
+		UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+		int cou;
+		cou = 0;
+		for (const FAssetData& AssetData : AssetDatas)
+		{
+			UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
+															   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
+			//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White, FString::FromInt(MatObj->CompressionSettings.GetValue()));
+			if (texComp->GetText().ToString() == "Default")
+			{
+				if (MatObj->CompressionSettings.GetValue() == 1)
+				{
+					MatObj->CompressionSettings = TC_Default;
+					//標記未保存星號
+					MatObj->AddToRoot();
+					MatObj->UpdateResource();
+					MatObj->MarkPackageDirty();
+					cou += 1;
+					UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
+				}
+			}
+
+			if (texComp->GetText().ToString() == "NormalMap")
+			{
+				if (MatObj->GetFName().ToString().Right(2) == "_N")
+				{
+					if (MatObj->CompressionSettings.GetValue() != 1)
+					{
+						MatObj->CompressionSettings = TC_Normalmap;
+						//標記未保存星號
+						MatObj->AddToRoot();
+						MatObj->UpdateResource();
+						MatObj->MarkPackageDirty();
+						cou += 1;
+						UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
+					}
+				}
+			}
+		}
+		if (cou > 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个法线贴图文件"), cou);
+			GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个法线贴图文件"), cou));
+		}
+	}else
+	{
+		GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
+	}
+	return FReply::Handled();
+}
+
+FReply SSlateMain::OnGoMapButtonClicked()
+{
+	FText const Title = LOCTEXT("title3","贴图压缩设置批处理");
+	FText const DialogText = LOCTEXT("queren","确认批处理贴图压缩设置格式?");
+	EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
+	if (ReturnType == EAppReturnType::Type::Ok)
+	{
+		TArray<FAssetData> AssetDatas;
+		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
+			FAssetRegistryModule>("AssetRegistry");
+		FARFilter Filter;
+		FString pp = texPath->GetText().ToString();
+		if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
+		{
+			FString newP = "";
+			TArray<FString> SArr;
+			pp.ParseIntoArray(SArr, TEXT("\\"), false);
+			for (const FString sss : SArr)
+			{
+				newP += sss + "/";
+			}
+			pp = newP;
+		}
+		FString en = pp.Right(1);
+		if (en == "/")
+			pp = pp.LeftChop(1);
+		Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //需要FName類型字符 *FString 前面加星號解引出來使用
+		Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());
+		if (RPath->IsChecked())
+		{
+			//遞歸搜尋路徑，查找子目錄
+			Filter.bRecursivePaths = true;
+		}
+		else
+		{
+			Filter.bRecursivePaths = false;
+		}
+		Filter.bRecursiveClasses = true;
+		AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+
+		FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
+		int cou;
+		cou = 0;
+		for (const FAssetData& AssetData : AssetDatas)
+		{
+			UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
+															   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
+			//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White, FString::FromInt(MatObj->CompressionSettings.GetValue()));
+			if (texComp->GetText().ToString() == "Default")
 			{
 				MatObj->CompressionSettings = TC_Default;
 				//標記未保存星號
@@ -1217,104 +1320,26 @@ FReply SSlateMain::OnGoButtonClicked()
 				cou += 1;
 				UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
 			}
-		}
 
-		if (texComp->GetText().ToString() == "NormalMap")
-		{
-			if (MatObj->GetFName().ToString().Right(2) == "_N")
+			if (texComp->GetText().ToString() == "BC7")
 			{
-				if (MatObj->CompressionSettings.GetValue() != 1)
-				{
-					MatObj->CompressionSettings = TC_Normalmap;
-					//標記未保存星號
-					MatObj->AddToRoot();
-					MatObj->UpdateResource();
-					MatObj->MarkPackageDirty();
-					cou += 1;
-					UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
-				}
+				MatObj->CompressionSettings = TC_BC7;
+				//標記未保存星號
+				MatObj->AddToRoot();
+				MatObj->UpdateResource();
+				MatObj->MarkPackageDirty();
+				cou += 1;
+				UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
 			}
 		}
-	}
-	if (cou > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个法线贴图文件"), cou);
-		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个法线贴图文件"), cou));
-	}
-	return FReply::Handled();
-}
-
-FReply SSlateMain::OnGoMapButtonClicked()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("AssetName:%s"), *MatObj->GetName());
-	TArray<FAssetData> AssetDatas;
-	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
-		FAssetRegistryModule>("AssetRegistry");
-	FARFilter Filter;
-	FString pp = texPath->GetText().ToString();
-	if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
-	{
-		FString newP = "";
-		TArray<FString> SArr;
-		pp.ParseIntoArray(SArr, TEXT("\\"), false);
-		for (const FString sss : SArr)
+		if (cou > 0)
 		{
-			newP += sss + "/";
+			UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
+			GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
 		}
-		pp = newP;
-	}
-	FString en = pp.Right(1);
-	if (en == "/")
-		pp = pp.LeftChop(1);
-	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //需要FName類型字符 *FString 前面加星號解引出來使用
-	Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());
-	if (RPath->IsChecked())
+	}else
 	{
-		//遞歸搜尋路徑，查找子目錄
-		Filter.bRecursivePaths = true;
-	}
-	else
-	{
-		Filter.bRecursivePaths = false;
-	}
-	Filter.bRecursiveClasses = true;
-	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
-
-	FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
-	GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
-	int cou;
-	cou = 0;
-	for (const FAssetData& AssetData : AssetDatas)
-	{
-		UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
-		                                                   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
-		//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::White, FString::FromInt(MatObj->CompressionSettings.GetValue()));
-		if (texComp->GetText().ToString() == "Default")
-		{
-			MatObj->CompressionSettings = TC_Default;
-			//標記未保存星號
-			MatObj->AddToRoot();
-			MatObj->UpdateResource();
-			MatObj->MarkPackageDirty();
-			cou += 1;
-			UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
-		}
-
-		if (texComp->GetText().ToString() == "BC7")
-		{
-			MatObj->CompressionSettings = TC_BC7;
-			//標記未保存星號
-			MatObj->AddToRoot();
-			MatObj->UpdateResource();
-			MatObj->MarkPackageDirty();
-			cou += 1;
-			UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.AssetName.ToString());
-		}
-	}
-	if (cou > 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
-		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
+		GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
 	}
 	return FReply::Handled();
 }
@@ -1433,12 +1458,17 @@ bool SSlateMain::WriteTxt(FString savestring, FString PN)
 {
 	bool result;
 	result = FFileHelper::SaveStringToFile(savestring, *(FPaths::ProjectPluginsDir() + "SceneTools_W_P/" + PN));
-	return true;
+	return true; 
 }
 
 FReply SSlateMain::SaveButtom()
 {
 	SaveNewPath();
+	return FReply::Handled();
+}
+FReply SSlateMain::TTTButtom()
+{
+	texPath->SetText(FText::FromString("FContentBrowserSingleton"));
 	return FReply::Handled();
 }
 
