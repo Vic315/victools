@@ -4,6 +4,7 @@
 #
 
 /[Tt]emp/
-*.txt
-*.bat
-key*
+history.txt
+ver.txt
+add_commit.bat
+key.*
