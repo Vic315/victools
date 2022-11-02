@@ -9,6 +9,7 @@
 #include "Widgets/Text/STextBlock.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SlateMain.h"
+
 static const FName SceneTools_W_PTabName("SceneTools_W_P");
 
 #define LOCTEXT_NAMESPACE "FSceneTools_W_PModule"

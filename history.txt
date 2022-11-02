@@ -7,3 +7,4 @@
 [22-09-01 周四 11:35:19] commit: 隐藏ver (VICPC) v7 
 [22-09-09 周五 18:19:22] commit: (Content根目录搜索bug修复)v1.7.2 (VICPC) v8 
 [22-09-22 周四 15:11:33] commit: 添加Fish控制脚本,STv1.7.4 (VICPC) v9 
+[22-11-03 周四  1:05:21] commit: 更新SceneTools 1.8.0 (VICPC) v10 

@@ -4,6 +4,8 @@
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Input/SButton.h"
+#include <string>
+#include "Widgets/SCompoundWidget.h"
 #include "AssetRegistryModule.h"
 #include "Engine/UserDefinedStruct.h"
 #include "Logging/LogMacros.h"
@@ -15,25 +17,43 @@
 #include "Engine/Texture.h"
 #include "GameFramework/Actor.h"
 #include "Math/UnrealMathUtility.h"
+#include "Misc/MessageDialog.h"
 #include "Widgets/Layout/SUniformGridPanel.h"
 #include "UObject/UObjectGlobals.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SBox.h"
+#include "CustomFN.h"
 //#include "Widgets/SWidget.h"
 //#include "EditorStyleSet.h"
-#include "IContentBrowserSingleton.h"
 #define LOCTEXT_NAMESPACE "SlateMain"
 
-FString pppp; //全局变量
-
+FString pppp=""; //全局变量
+FString s_suffix="";
+FString s_equal="";
+int s_searchV=1024;
+int s_powV=7;
+FString s_setV="512";
+FString IniPath = (FPaths::ProjectPluginsDir() + "SceneTools_W_P/settings.ini");
+CustomFN CFN;
 void SSlateMain::Construct(const FArguments& InArgs)
 {
 	//FString vers = FString::Printf(TEXT("%s %s"), *na, *ST_Ver);
 	const FString vers = FString::Printf(TEXT("SceneTools  %s"), *ST_Ver);
-
-	//IPlatformFile& fileManager = FPlatformFileManager::Get().GetPlatformFile();
-
+	
+	//记录读取
+	if (FPaths::FileExists(*(FPaths::ProjectPluginsDir() + "SceneTools_W_P/settings.ini")))
+	{
+		CFN.ReadIniValue(FString("SceneTools"), FString("Path"), pppp, *IniPath);
+		CFN.ReadIniValue(FString("SceneTools"), FString("Suffix"), s_suffix, *IniPath);
+		CFN.ReadIniValue(FString("SceneTools"), FString("Equal"), s_equal, *IniPath);
+		CFN.ReadIniValue(FString("SceneTools"), FString("SetV"), s_setV, *IniPath);
+		FString s_SV;
+		CFN.ReadIniValue(FString("SceneTools"), FString("SearchV"), s_SV, *IniPath);
+		s_searchV = FCString::Atoi(*s_SV);
+		FString s_PV;
+		CFN.ReadIniValue(FString("SceneTools"), FString("PowV"), s_PV, *IniPath);
+		s_powV = FCString::Atoi(*s_PV);
+	}
 	if (FPaths::FileExists(*(FPaths::ProjectPluginsDir() + "SceneTools_W_P/ST.txt")))
 	{
 		ReflashHist();
@@ -41,12 +61,12 @@ void SSlateMain::Construct(const FArguments& InArgs)
 	else
 	{
 		WriteTxt("", "ST.txt");
-		//phOpations.Add(MakeShareable(new FString("")));
 	}
 	compOpations.Add(MakeShareable(new FString("Default")));
 	compOpations.Add(MakeShareable(new FString("NormalMap")));
 	compOpations.Add(MakeShareable(new FString("BC7")));
-
+	equalSel.Add(MakeShareable(new FString(TEXT("大于等于"))));
+	equalSel.Add(MakeShareable(new FString(TEXT("等于"))));
 	ChildSlot
 	[
 		SNew(SVerticalBox) //創建主垂直面板
@@ -62,24 +82,24 @@ void SSlateMain::Construct(const FArguments& InArgs)
 		[
 			SAssignNew(Expnv1,SExpandableArea) //可折疊面板
 			.AreaTitle(LOCTEXT("MyExpandable", "Scene Tools"))
-			.InitiallyCollapsed(true)
+			.InitiallyCollapsed(false)
 			.Padding(2.0f)
 			.HeaderContent()
 			[
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot().AutoWidth()
 				                        .HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(5.0f)
-				[SNew(STextBlock).Text(LOCTEXT("batch", "批处理:"))
+				[SNew(STextBlock).Text(LOCTEXT("batch", "批处理:")).ColorAndOpacity(FLinearColor(0.2, 0.5, 0.98, 1.0))
 				]
 				+ SHorizontalBox::Slot()
 				  .HAlign(HAlign_Left).AutoWidth()
 				  .Padding(2.0f)[
 					SAssignNew(phComBox, SComboBox<TSharedPtr<FString>>)
 					.OptionsSource(&phOpations)
-					.OnGenerateWidget(this, &SSlateMain::GenerateSourceComboItem)
+					.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
 					.OnSelectionChanged(this, &SSlateMain::HandleSourceComboChanged)
 					.IsFocusable(true)[
-						SAssignNew(phComBoxCont, SBox)
+						SNew(SBox)
 					]
 				  ]
 				+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
@@ -92,13 +112,14 @@ void SSlateMain::Construct(const FArguments& InArgs)
 				  .Padding(2.0f)
 				[
 					SAssignNew(texPath, SEditableTextBox).Text(FText::FromString(*pppp)).MinDesiredWidth(150)
-					//.OnTextCommitted(this, &SSlateMain::OnPathText)
+					.BackgroundColor(FLinearColor(0.98f,0.87f,0.65f,0.65f))
+					.OnTextChanged(this, &SSlateMain::OnPathText)
 				]
 				+ SHorizontalBox::Slot()
 				  .HAlign(HAlign_Left)
 				  .Padding(2.f)
 				[
-					SNew(SButton).Text(LOCTEXT("savePath", "Save"))
+					SNew(SButton).Text(FText::FromString("Save"))
 					             .ToolTipText(LOCTEXT("save", "保存當前路徑(填Content后的路径,前后都不要有斜杠!)"))
 					             .OnClicked(this, &SSlateMain::SaveButtom)
 				]
@@ -106,8 +127,9 @@ void SSlateMain::Construct(const FArguments& InArgs)
 				  .HAlign(HAlign_Right)
 				  .Padding(2.f)
 				[
-					SNew(SButton).Text(LOCTEXT("test", "TTT"))
-					             .ToolTipText(LOCTEXT("title", "ttttt"))
+					SNew(SButton).Text(FText::FromString("TTT"))
+					             .ToolTipText(FText::FromString("Test Button"))
+					             .ButtonColorAndOpacity(FLinearColor(0,0,0,0))
 					             .OnClicked(this, &SSlateMain::TTTButtom)
 				]
 				+ SHorizontalBox::Slot()
@@ -149,12 +171,12 @@ void SSlateMain::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot().Padding(3.0f)
 					                        .HAlign(HAlign_Left).VAlign(VAlign_Center).AutoWidth()
 					[
-						SAssignNew(compSettingComBox, SComboBox<TSharedPtr<FString>>)
+						SNew(SComboBox<TSharedPtr<FString>>)
 						.OptionsSource(&compOpations)
 						.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
 						.OnSelectionChanged(this, &SSlateMain::comp_ComboChanged)
 						.IsFocusable(true)[
-							SAssignNew(compComBoxCont, SBox)
+							SNew(SBox)
 						]
 					]
 					+ SHorizontalBox::Slot().Padding(3.0f)
@@ -174,15 +196,79 @@ void SSlateMain::Construct(const FArguments& InArgs)
 					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
 						SNew(SButton)
 					.Text(LOCTEXT("goAdju", "重置贴图调整"))
-					.ToolTipText(LOCTEXT("goAdjuTooltip", "批量重置所有贴图调整参数(右边填写后缀名挑选文件)"))
+					.ToolTipText(LOCTEXT("goAdjuTooltip", "批量重置所有贴图调整参数(右边填写后缀名挑选文件,输出在D盘)"))
 					.OnClicked(this, &SSlateMain::SeachAdjustmentTexture)
 					]
 					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
 						SNew(STextBlock).Text(FText::FromString("Suffix:"))
 					]
 					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
-						SAssignNew(suffixSeach, SEditableTextBox).Text(FText::FromString("")).MinDesiredWidth(30)
+						SAssignNew(suffixSeach, SEditableTextBox).Text(FText::FromString(*s_suffix)).MinDesiredWidth(30)
+						.BackgroundColor(FLinearColor(0.7f,0.97f,0.65f,1.0))
+						.OnTextChanged(this,&SSlateMain::OnSubfixText)
 					]
+				]
+				//1.8 批量设置贴图尺寸
+				+ SVerticalBox::Slot().AutoHeight()
+				                      .Padding(2.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot().AutoWidth()
+											.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)
+					[SNew(STextBlock).Text(LOCTEXT("settex", "                        : "))]
+					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
+						SNew(SButton)
+					.Text(LOCTEXT("resetLB", "重置LODBias"))
+					.ToolTipText(LOCTEXT("resettp", "批量重置LOD Bias为0(上面填写后缀名挑选文件,输出在D盘)"))
+					.OnClicked(this, &SSlateMain::ResetTextureLODBias)
+					]
+					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
+						SNew(SButton)
+					.Text(LOCTEXT("msize", "MaxSize"))
+					.ToolTipText(LOCTEXT("msTooltip", "批量设置贴图尺寸(上面填写后缀名挑选文件,输出在D盘)"))
+					.OnClicked(this, &SSlateMain::SetTextureMax)
+					]
+					+ SHorizontalBox::Slot().VAlign(VAlign_Center)
+											.HAlign(HAlign_Left).AutoWidth().Padding(2.0f)
+					[
+						SNew(SComboBox<TSharedPtr<FString>>)
+						.OptionsSource(&equalSel)
+						.OnGenerateWidget(this,&SSlateMain::comp_ComboItem)
+						.OnSelectionChanged(this,&SSlateMain::comp_equalText)
+						.IsFocusable(true)[SNew(SBox)]
+					]
+					+ SHorizontalBox::Slot().AutoWidth()
+                    						.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)
+                    [SNew(STextBlock).Text(FText::FromString(TEXT("查找")))]
+					+ SHorizontalBox::Slot().AutoWidth()
+                    						.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)
+                    [
+                    	SAssignNew(equalText,SEditableTextBox).Text(FText::FromString(*s_equal)).MinDesiredWidth(10)
+                    	.BackgroundColor(FLinearColor(0.1f,0.1f,0.1f,0.0f))
+                    	.ForegroundColor(FLinearColor(0.9f,1.0f,0.8f,1.0f))
+                    ]
+					+ SHorizontalBox::Slot().VAlign(VAlign_Center)
+											.HAlign(HAlign_Left).AutoWidth().Padding(2.0f)
+					[
+						SAssignNew(searchSize, SSpinBox<int>).MaxValue(4096).MinValue(32).Value(s_searchV).ToolTipText(FText::FromString(TEXT("拖动来设置查找贴图尺寸")))
+						.OnEndSliderMovement(this,&SSlateMain::SearchSizeValueSet)
+					]
+					+ SHorizontalBox::Slot().AutoWidth()
+                    						.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)
+                    [SNew(STextBlock).Text(LOCTEXT("setmapValtp", "设置尺寸为:"))]
+					+ SHorizontalBox::Slot().VAlign(VAlign_Center)
+											.HAlign(HAlign_Left).AutoWidth().Padding(2.0f)
+					[
+						//SAssignNew(setMapSize, SSpinBox<int>).MaxValue(16).MinValue(1).Value(6)
+						SNew(SSpinBox<int>).MaxValue(11).MinValue(1).Value(s_powV)
+						.ToolTipText(LOCTEXT("setmapVal", "输入2的次方数"))
+						.OnValueChanged(this, &SSlateMain::SetSizeValue)
+					]
+					+ SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
+						SAssignNew(SizeValue, SEditableTextBox).Text(FText::FromString(*s_setV)).MinDesiredWidth(30)
+						.BackgroundColor(FLinearColor(0.1f,0.1f,0.1f,0.0f))
+						.ForegroundColor(FLinearColor(0.9,0,0.1,1.0))
+						]
 				]
 				]
 				]//层级与对齐 垂直折叠面板
@@ -200,7 +286,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                         + SHorizontalBox::Slot()
                           .HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(30.0f)
                           .Padding(2.0f)[
-                            SNew(STextBlock).Text(LOCTEXT("v12", "层级与对齐："))
+                            SNew(STextBlock).Text(LOCTEXT("v12", "层级与对齐：")).ColorAndOpacity(FLinearColor(0.2,0.5,0.98,1.0))
                         ]
                         + SHorizontalBox::Slot()
                           .HAlign(HAlign_Center).VAlign(VAlign_Center).FillWidth(40.0f)
@@ -208,7 +294,8 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             //SNew(STextBlock).Text(FText::FromString("Parent and Align:"))
   
                             SNew(SButton)
-                    .Text(LOCTEXT("ttttt", "  - collapse -  "))
+                    .Text(LOCTEXT("ttttt", "     ↑  ―― collapse ――  ↓    ")).ButtonColorAndOpacity(FLinearColor(0.07,0.07,0.07,1.0))
+                    .ForegroundColor(FLinearColor(0.79,0.79,0.79,1.0))
                     .OnClicked(this, &SSlateMain::testClicked)
                         ]
                     ].BodyContent()[
@@ -235,7 +322,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                                                     .HAlign(HAlign_Right).Padding(2.0f)
                             [
                                 SNew(SButton)
-                .Text(LOCTEXT("alignPos", "Location")).VAlign(VAlign_Center)
+                .Text(FText::FromString("Location")).VAlign(VAlign_Center).ButtonColorAndOpacity(FLinearColor(0.92,0.84,0.3,1.0))
                 .ToolTipText(LOCTEXT("alignPosTT", "对齐物体（位移）到最后选择的物体"))
                 .OnClicked(this, &SSlateMain::AlignPosClicked)
                             ]
@@ -243,7 +330,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                                                     .HAlign(HAlign_Right).Padding(2.0f)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("alignRot", "Rotation"))
+                    .Text(FText::FromString("Rotation")).ButtonColorAndOpacity(FLinearColor(0.92,0.84,0.3,1.0))
                 .ToolTipText(LOCTEXT("alignRotTT", "对齐物体（旋转）到最后选择的物体，右边值大于‘0’将取随机角度"))
                 .OnClicked(this, &SSlateMain::AlignRotClicked)
                             ]
@@ -257,7 +344,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                                                     .HAlign(HAlign_Right).Padding(2.0f)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("alignSel", "Scale"))
+                    .Text(FText::FromString("Scale")).ButtonColorAndOpacity(FLinearColor(0.92,0.84,0.3,1.0))
                 .ToolTipText(LOCTEXT("alignSclTT", "对齐物体（缩放）到最后选择的物体"))
                 .OnClicked(this, &SSlateMain::AlignSclClicked)
                             ]
@@ -303,7 +390,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("aX", "[X]■■■"))
+                    .Text(LOCTEXT("aX", "[X]■■■")).ButtonColorAndOpacity(FLinearColor(0.94,0.2,0.2,1.0))
                     .ToolTipText(LOCTEXT("aXtt", "按 X 轴排列"))
                     .OnClicked(this, &SSlateMain::XArray_Clicked)
                             ]
@@ -311,7 +398,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("aY", "[Y]■■■"))
+                    .Text(LOCTEXT("aY", "[Y]■■■")).ButtonColorAndOpacity(FLinearColor(0.2,0.94,0.2,1.0))
                     .ToolTipText(LOCTEXT("aYtt", "按 Y 轴排列"))
                     .OnClicked(this, &SSlateMain::YArray_Clicked)
                             ]
@@ -324,7 +411,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("Xadd", "X←"))
+                    .Text(LOCTEXT("Xadd", "X←")).ButtonColorAndOpacity(FLinearColor(0.94,0.2,0.2,1.0))
                     .ToolTipText(LOCTEXT("Xo", "对齐至X轴边界"))
                     .OnClicked(this, &SSlateMain::XoAlignX_Clicked)
                             ]
@@ -332,7 +419,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("-Xadd", "→X"))
+                    .Text(LOCTEXT("-Xadd", "→X")).ButtonColorAndOpacity(FLinearColor(0.94,0.2,0.2,1.0))
                     .ToolTipText(LOCTEXT("oX", "对齐至-X轴边界"))
                 .OnClicked(this, &SSlateMain::oXAlignX_Clicked)
                             ]
@@ -340,7 +427,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("cXadd", "→X←"))
+                    .Text(LOCTEXT("cXadd", "→X←")).ButtonColorAndOpacity(FLinearColor(0.94,0.2,0.2,1.0))
                     .ToolTipText(LOCTEXT("oXo", "对齐至X轴中间"))
                 .OnClicked(this, &SSlateMain::oXoAlignX_Clicked)
                             ]
@@ -349,7 +436,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("Yadd", "Y←"))
+                    .Text(LOCTEXT("Yadd", "Y←")).ButtonColorAndOpacity(FLinearColor(0.2,0.94,0.2,1.0))
                     .ToolTipText(LOCTEXT("Yo", "对齐至Y轴边界"))
                 .OnClicked(this, &SSlateMain::YoAlignY_Clicked)
                             ]
@@ -357,7 +444,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("-Yadd", "→Y"))
+                    .Text(LOCTEXT("-Yadd", "→Y")).ButtonColorAndOpacity(FLinearColor(0.2,0.94,0.2,1.0))
                     .ToolTipText(LOCTEXT("oY", "对齐至-Y轴边界"))
                 .OnClicked(this, &SSlateMain::oYAlignY_Clicked)
                             ]
@@ -365,7 +452,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("cYadd", "→Y←"))
+                    .Text(LOCTEXT("cYadd", "→Y←")).ButtonColorAndOpacity(FLinearColor(0.2,0.94,0.2,1.0))
                     .ToolTipText(LOCTEXT("oYo", "对齐至Y轴中间"))
                 .OnClicked(this, &SSlateMain::oYoAlignY_Clicked)
                             ]
@@ -374,7 +461,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("Zadd", "Z←"))
+                    .Text(LOCTEXT("Zadd", "Z←")).ButtonColorAndOpacity(FLinearColor(0.2,0.2,0.94,1.0))
                     .ToolTipText(LOCTEXT("Zo", "对齐至Z轴边界"))
                 .OnClicked(this, &SSlateMain::ZoAlignZ_Clicked)
                             ]
@@ -382,7 +469,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("-Zadd", "→Z"))
+                    .Text(LOCTEXT("-Zadd", "→Z")).ButtonColorAndOpacity(FLinearColor(0.2,0.2,0.94,1.0))
                     .ToolTipText(LOCTEXT("oZ", "对齐至-Z轴边界"))
                 .OnClicked(this, &SSlateMain::oZAlignZ_Clicked)
                             ]
@@ -390,7 +477,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .HAlign(HAlign_Fill)
                             [
                                 SNew(SButton)
-                    .Text(LOCTEXT("cZadd", "→Z←"))
+                    .Text(LOCTEXT("cZadd", "→Z←")).ButtonColorAndOpacity(FLinearColor(0.2,0.2,0.94,1.0))
                     .ToolTipText(LOCTEXT("oZo", "对齐至Z轴中间"))
                 .OnClicked(this, &SSlateMain::oZoAlignZ_Clicked)
                             ]
@@ -423,12 +510,12 @@ FReply SSlateMain::testClicked()
 	if (Expnv12->IsExpanded())
 	{
 		Expnv12->SetExpanded(false);
-		Expnv1->SetExpanded(false);
+		Expnv1->SetExpanded(true);
 	}
 	else
 	{
 		Expnv12->SetExpanded(true);
-		Expnv1->SetExpanded(true);
+		Expnv1->SetExpanded(false);
 	}
 	//UE_LOG(LogTemp, Error, TEXT("test %i"), arrayRow);
 	return FReply::Handled();
@@ -1062,6 +1149,219 @@ FReply SSlateMain::AlignSclClicked()
 	return FReply::Handled();
 }
 
+
+FReply SSlateMain::ResetTextureLODBias()
+{
+	FText const Title = LOCTEXT("title1","贴图批处理");
+    FText const DialogText = LOCTEXT("queren","确认要批量重置 LOD Bias?");
+    EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
+    if (ReturnType == EAppReturnType::Type::Ok)
+    {
+    	TArray<FAssetData> AssetDatas;
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
+        FAssetRegistryModule>("AssetRegistry");
+        FARFilter Filter;
+        FString pp = texPath->GetText().ToString();
+        FString pName;
+        if (pp != "")
+        {
+            //查找路径是否是反斜杠，如果是切割并替换成正斜杠
+            if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
+            {
+                FString newP = "";
+                TArray<FString> SArr;
+                pp.ParseIntoArray(SArr, TEXT("\\"), false);
+                for (const FString sss : SArr)
+                {
+                	newP += sss + "/";
+                }
+                pp = newP;
+            }
+            FString en = pp.Right(1);
+            if (en == "/")
+                pp = pp.LeftChop(1);
+            //提取最后一个目录名 pName
+            TArray<FString> SArr;
+            pp.ParseIntoArray(SArr, TEXT("/"), false);
+            pName = SArr[SArr.Num() - 1];
+            Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
+        }else
+        {
+            pName = "Content";
+            Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
+        }
+        Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());  //添加过滤文件类型
+        if (RPath->IsChecked())
+        {
+            //遞歸搜尋路径，查找子目录
+            Filter.bRecursivePaths = true;
+        }
+        else
+        {
+            Filter.bRecursivePaths = false;
+        }
+        Filter.bRecursiveClasses = true;
+        AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+    
+        FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
+        UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        int cou = 0;
+        FString FileName = FString::Printf(TEXT("d:/TexResetLODBiasList-%s.txt"), *pName);
+        FString Content;
+        for (const FAssetData& AssetData : AssetDatas)
+        {
+            UTexture2D* MatObj = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr,
+                                                               (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
+            if (MatObj->GetName().Right(suffixSeach->GetText().ToString().Len()) == suffixSeach->GetText().ToString())
+            {
+                if ( MatObj->LODBias >= 1) {
+                	MatObj->LODBias = 0;
+                	//標記未保存星號
+                	MatObj->AddToRoot();
+                	MatObj->UpdateResource();
+                	MatObj->MarkPackageDirty();
+                	cou += 1;
+                	//文件路径写入文本
+                	FString MatPath = *MatObj->GetPathName();
+                	FString MatLeft;
+                	MatPath.Split(".", &MatLeft, nullptr);
+                	Content += FString::Printf(TEXT("%s\n"), *MatLeft);
+                }
+            }
+        }
+        if (cou > 0)
+        {
+            Content += FString::Printf(TEXT("共搜索 %i 个贴图文件, 如上 %i 个文件调整\n"),AssetDatas.Num() ,cou);
+            UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
+            FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+            //打开创建的txt文本
+            FString FP = FString::Printf(TEXT("start %s"), *FileName);
+            system(TCHAR_TO_UTF8(*FP));
+            UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
+            GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
+        }
+    }else
+    {
+    	GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
+    }
+	return FReply::Handled();
+}
+FReply SSlateMain::SetTextureMax()
+{
+	FText const Title = LOCTEXT("title1","贴图批处理");
+    FText const DialogText = LOCTEXT("queren","确认要批处理贴图尺寸?");
+    EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
+    if (ReturnType == EAppReturnType::Type::Ok)
+    {
+    	TArray<FAssetData> AssetDatas;
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
+        FAssetRegistryModule>("AssetRegistry");
+        FARFilter Filter;
+        FString pp = texPath->GetText().ToString();
+        FString pName;
+        if (pp != "")
+        {
+            //查找路径是否是反斜杠，如果是切割并替换成正斜杠
+            if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
+            {
+                FString newP = "";
+                TArray<FString> SArr;
+                pp.ParseIntoArray(SArr, TEXT("\\"), false);
+                for (const FString sss : SArr)
+                {
+                	newP += sss + "/";
+                }
+                pp = newP;
+            }
+            FString en = pp.Right(1);
+            if (en == "/")
+                pp = pp.LeftChop(1);
+            //提取最后一个目录名 pName
+            TArray<FString> SArr;
+            pp.ParseIntoArray(SArr, TEXT("/"), false);
+            pName = SArr[SArr.Num() - 1];
+            Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
+        }else
+        {
+            pName = "Content";
+            Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
+        }
+        Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());  //添加过滤文件类型
+        if (RPath->IsChecked())
+        {
+            //遞歸搜尋路径，查找子目录
+            Filter.bRecursivePaths = true;
+        }
+        else
+        {
+            Filter.bRecursivePaths = false;
+        }
+        Filter.bRecursiveClasses = true;
+        AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+    
+        FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
+        UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        int cou = 0;
+        FString FileName = FString::Printf(TEXT("d:/TexResizeList-%s.txt"), *pName);
+        FString Content;
+    	FString absd = equalText->GetText().ToString();
+        for (const FAssetData& AssetData : AssetDatas)
+        {
+            UTexture2D* MatObj = Cast<UTexture2D>(StaticLoadObject(UTexture2D::StaticClass(), nullptr,
+                                                               (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
+            if (MatObj->GetName().Right(suffixSeach->GetText().ToString().Len()) == suffixSeach->GetText().ToString())
+            {
+            	if (absd == TEXT("等于"))
+            	{
+            		if ( MatObj->GetImportedSize().Y == searchSize->GetValue()) {
+            			MatObj->MaxTextureSize = FCString::Atoi(*SizeValue->GetText().ToString());
+            			//標記未保存星號
+            			MatObj->AddToRoot();
+            			MatObj->UpdateResource();
+            			MatObj->MarkPackageDirty();
+            			cou += 1;
+            			//文件路径写入文本
+            			FString MatPath = *MatObj->GetPathName();
+            			FString MatLeft;
+            			MatPath.Split(".", &MatLeft, nullptr);
+            			Content += FString::Printf(TEXT("%s\n"), *MatLeft);
+            		}
+            	}else{
+            		if ( MatObj->GetImportedSize().Y >= searchSize->GetValue()) {
+                        MatObj->MaxTextureSize = FCString::Atoi(*SizeValue->GetText().ToString());
+                        //標記未保存星號
+                        MatObj->AddToRoot();
+                        MatObj->UpdateResource();
+                        MatObj->MarkPackageDirty();
+                        cou += 1;
+                        //文件路径写入文本
+                        FString MatPath = *MatObj->GetPathName();
+                        FString MatLeft;
+                        MatPath.Split(".", &MatLeft, nullptr);
+                        Content += FString::Printf(TEXT("%s\n"), *MatLeft);
+                    }
+            	}
+            }
+        }
+        if (cou > 0)
+        {
+            Content += FString::Printf(TEXT("共搜索 %i 个贴图文件, 如上 %i 个文件调整\n"),AssetDatas.Num() ,cou);
+            UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
+            FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+            //打开创建的txt文本
+            FString FP = FString::Printf(TEXT("start %s"), *FileName);
+            system(TCHAR_TO_UTF8(*FP));
+            UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
+            GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
+        }
+    }else
+    {
+    	GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
+    }
+	return FReply::Handled();
+}
 FReply SSlateMain::SeachAdjustmentTexture()
 {
 	FText const Title = LOCTEXT("title1","贴图调整批处理");
@@ -1070,95 +1370,92 @@ FReply SSlateMain::SeachAdjustmentTexture()
 	if (ReturnType == EAppReturnType::Type::Ok)
 	{
 		TArray<FAssetData> AssetDatas;
-        	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
-        		FAssetRegistryModule>("AssetRegistry");
-        	FARFilter Filter;
-        	FString pp = texPath->GetText().ToString();
-        	FString pName;
-        	if (pp != "")
+        FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<
+        FAssetRegistryModule>("AssetRegistry");
+        FARFilter Filter;
+        FString pp = texPath->GetText().ToString();
+        FString pName;
+        if (pp != "")
+        {
+        	//查找路径是否是反斜杠，如果是切割并替换成正斜杠
+        	if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
         	{
-        		//查找路径是否是反斜杠，如果是切割并替换成正斜杠
-        		if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
-        		{
-        			FString newP = "";
-        			TArray<FString> SArr;
-        			pp.ParseIntoArray(SArr, TEXT("\\"), false);
-        			for (const FString sss : SArr)
-        			{
-        				newP += sss + "/";
-        			}
-        			pp = newP;
-        		}
-        		FString en = pp.Right(1);
-        		if (en == "/")
-        			pp = pp.LeftChop(1);
-        		//提取最后一个目录名 pName
+        		FString newP = "";
         		TArray<FString> SArr;
-        		pp.ParseIntoArray(SArr, TEXT("/"), false);
-        		pName = SArr[SArr.Num() - 1];
-        		Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
-        	}else
-        	{
-        		pName = "Content";
-        		Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
-        	}
-        	Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());  //添加过滤文件类型
-        	if (RPath->IsChecked())
-        	{
-        		//遞歸搜尋路径，查找子目录
-        		Filter.bRecursivePaths = true;
-        	}
-        	else
-        	{
-        		Filter.bRecursivePaths = false;
-        	}
-        	Filter.bRecursiveClasses = true;
-        	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
-        
-        	FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
-        	GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
-        	UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
-        	int cou = 0;
-        	FString FileName = FString::Printf(TEXT("d:/TextureList-%s.txt"), *pName);
-        	FString Content;
-        	for (const FAssetData& AssetData : AssetDatas)
-        	{
-        		UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
-        		                                                   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
-        		if (texComp->GetText().ToString() == "Default")
+        		pp.ParseIntoArray(SArr, TEXT("\\"), false);
+        		for (const FString sss : SArr)
         		{
-        			if (MatObj->GetName().Right(suffixSeach->GetText().ToString().Len()) == suffixSeach->GetText().ToString())
-        			{
-        				if (MatObj->AdjustHue != 0)
-        				{
-        					MatObj->AdjustHue = 0;
-        					//標記未保存星號
-        					MatObj->AddToRoot();
-        					MatObj->UpdateResource();
-        					MatObj->MarkPackageDirty();
-        					cou += 1;
-        					//文件路径写入文本
-        					FString MatPath = *MatObj->GetPathName();
-        					FString MatLeft;
-        					MatPath.Split(".", &MatLeft, nullptr);
-        					Content += FString::Printf(TEXT("%s\n"), *MatLeft);
-        					//获取路径与文件名
-        					//UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.PackageName.ToString());
-        				}
-        			}
+        			newP += sss + "/";
+        		}
+        		pp = newP;
+        	}
+        	FString en = pp.Right(1);
+        	if (en == "/")
+        		pp = pp.LeftChop(1);
+        	//提取最后一个目录名 pName
+        	TArray<FString> SArr;
+        	pp.ParseIntoArray(SArr, TEXT("/"), false);
+        	pName = SArr[SArr.Num() - 1];
+        	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
+        }else
+        {
+        	pName = "Content";
+        	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
+        }
+        Filter.ClassNames.Add(UTexture::StaticClass()->GetFName());  //添加过滤文件类型
+        if (RPath->IsChecked())
+        {
+        	//遞歸搜尋路径，查找子目录
+        	Filter.bRecursivePaths = true;
+        }
+        else
+        {
+        	Filter.bRecursivePaths = false;
+        }
+        Filter.bRecursiveClasses = true;
+        AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+    
+        FString mess = FString::Printf(TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, *mess);
+        UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个贴图文件"), AssetDatas.Num());
+        int cou = 0;
+        FString FileName = FString::Printf(TEXT("d:/TextureList-%s.txt"), *pName);
+        FString Content;
+        for (const FAssetData& AssetData : AssetDatas)
+        {
+        	UTexture* MatObj = Cast<UTexture>(StaticLoadObject(UTexture::StaticClass(), nullptr,
+        	                                                   (TEXT("Texture'%s'"), *AssetData.ObjectPath.ToString())));
+        	if (MatObj->GetName().Right(suffixSeach->GetText().ToString().Len()) == suffixSeach->GetText().ToString())
+        	{
+        		if (MatObj->AdjustHue != 0)
+        		{
+        			MatObj->AdjustHue = 0;
+        			//標記未保存星號
+        			MatObj->AddToRoot();
+        			MatObj->UpdateResource();
+        			MatObj->MarkPackageDirty();
+        			cou += 1;
+        			//文件路径写入文本
+        			FString MatPath = *MatObj->GetPathName();
+        			FString MatLeft;
+        			MatPath.Split(".", &MatLeft, nullptr);
+        			Content += FString::Printf(TEXT("%s\n"), *MatLeft);
+        			//获取路径与文件名
+        			//UE_LOG(LogTemp, Log, TEXT("%s 【已处理】"), *AssetData.PackageName.ToString());
         		}
         	}
-        	if (cou > 0)
-        	{
-        		Content += FString::Printf(TEXT("共搜索 %i 个贴图文件, 如上 %i 个文件调整\n"),AssetDatas.Num() ,cou);
-        		UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
-        		FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-        		//打开创建的txt文本
-        		FString FP = FString::Printf(TEXT("start %s"), *FileName);
-        		system(TCHAR_TO_UTF8(*FP));
-        		UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
-        		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
-        	}
+        }
+        if (cou > 0)
+        {
+        	Content += FString::Printf(TEXT("共搜索 %i 个贴图文件, 如上 %i 个文件调整\n"),AssetDatas.Num() ,cou);
+        	UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
+        	FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+        	//打开创建的txt文本
+        	FString FP = FString::Printf(TEXT("start %s"), *FileName);
+        	system(TCHAR_TO_UTF8(*FP));
+        	UE_LOG(LogTemp, Warning, TEXT("共处理 %i 个贴图文件"), cou);
+        	GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Green, FString::Printf(TEXT("共处理 %i 个贴图文件"), cou));
+        }
 	}else
 	{
 		GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("取消"));
@@ -1349,7 +1646,7 @@ bool SSlateMain::DiffPathText(FString path)
 	int con = 0;
 	FString aaa = ReadTxt("ST.txt");
 	TArray<FString> arr;
-	aaa.ParseIntoArray(arr, TEXT("\n"), false);
+	aaa.ParseIntoArray(arr, TEXT("\n"), false);  //将读取的文本以换行符拆分到数组arr中
 	for (const FString hist : arr)
 	{
 		if (hist == path)
@@ -1367,26 +1664,77 @@ bool SSlateMain::DiffPathText(FString path)
 	}
 }
 
+void SSlateMain::OnSubfixText(const FText& Text)
+{
+	CFN.WriteIni(FString("SceneTools"), FString("Suffix"), Text.ToString(), IniPath);
+}
+void SSlateMain::OnPathText(const FText& Text)
+{
+	if(FPaths::DirectoryExists(*(FPaths::ProjectContentDir() + Text.ToString())))
+		CFN.WriteIni(FString("SceneTools"), FString("Path"), Text.ToString(), IniPath);
+	else
+		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Red, FString::Printf(TEXT(" %s 目录不存在!"), *Text.ToString()));
+}
+void SSlateMain::SearchSizeValueSet(FPlatformTypes::int32 val)
+{
+	for (int i=5; i <= 11;i++)
+	{
+		int sss =pow(2,i);
+		if (val >= sss && val < pow(2,(i+1)))
+		{
+			searchSize->SetValue(sss);
+            CFN.WriteIni(FString("SceneTools"), FString("SearchV"), FString::FromInt(sss), IniPath);
+		}
+			
+	}
+	// if(val >= 32 && val < 64)
+	// 	searchSize->SetValue(32);
+	// if(val >= 64 && val < 128)
+	// 	searchSize->SetValue(64);
+	// if(val >= 128 && val < 256)
+	// 	searchSize->SetValue(128);
+	// if(val >= 256 && val < 256)
+	// 	searchSize->SetValue(128);
+	
+}
+void SSlateMain::SetSizeValue(FPlatformTypes::int32 val)
+{
+	int vvv = pow(2,val);
+	SizeValue->SetText(FText::FromString(FString::FromInt(vvv)));
+	CFN.WriteIni(FString("SceneTools"), FString("SetV"), FString::FromInt(vvv), IniPath);
+	CFN.WriteIni(FString("SceneTools"), FString("PowV"), FString::FromInt(val), IniPath);
+}
 void SSlateMain::comp_ComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
 {
 	texComp->SetText(FText::FromString(*Item));
 }
-
+void SSlateMain::comp_equalText(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
+{
+	if (*Item == TEXT("等于"))
+	{
+		equalText->SetText(FText::FromString(TEXT("等于")));
+		CFN.WriteIni(FString("SceneTools"), FString("Equal"), TEXT("等于"), IniPath);
+	}
+	else
+	{
+		equalText->SetText(FText::FromString(TEXT("大于等于")));
+		CFN.WriteIni(FString("SceneTools"), FString("Equal"), TEXT("大于等于"), IniPath);
+	}
+}
+//用于显示下拉菜单内容,所有SComboBox的.OnGenerateWidget(...)共用该函数
 TSharedRef<class SWidget> SSlateMain::comp_ComboItem(TSharedPtr<FString> InItem)
 {
 	return SNew(STextBlock).Text(FText::FromString(*InItem));
 }
 
-TSharedRef<class SWidget> SSlateMain::GenerateSourceComboItem(TSharedPtr<FString> InItem)
-{
-	return SNew(STextBlock).Text(FText::FromString(*InItem));
-}
 
 void SSlateMain::HandleSourceComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
 {
-	SelectInfo = ESelectInfo::OnKeyPress;
+	//SelectInfo = ESelectInfo::OnKeyPress;
 	SaveNewPath();
 	texPath->SetText(FText::FromString(*Item));
+	FString aa = LexToString(*phComBox->GetSelectedItem());
+	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, aa);
 }
 
 void SSlateMain::SaveNewPath()
@@ -1424,7 +1772,7 @@ void SSlateMain::SaveNewPath()
 		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("请输入content下的路径")));
 	}
 }
-
+//读取记录
 void SSlateMain::ReflashHist()
 {
 	FString aaa = ReadTxt("ST.txt");
@@ -1440,12 +1788,11 @@ void SSlateMain::ReflashHist()
 				if (FPaths::DirectoryExists(*(FPaths::ProjectContentDir() + path)))
 				{
 					phOpations.Add(MakeShareable(new FString(path)));
-					pppp = path;
 				}
 		}
 	}
 }
-
+//读取文件函数
 FString SSlateMain::ReadTxt(FString PN)
 {
 	FString readString;
@@ -1453,22 +1800,24 @@ FString SSlateMain::ReadTxt(FString PN)
 	FFileHelper::LoadFileToString(readString, *(FPaths::ProjectPluginsDir() + "SceneTools_W_P/" + PN));
 	return readString;
 }
-
+//写入文件函数
 bool SSlateMain::WriteTxt(FString savestring, FString PN)
 {
 	bool result;
 	result = FFileHelper::SaveStringToFile(savestring, *(FPaths::ProjectPluginsDir() + "SceneTools_W_P/" + PN));
-	return true; 
+	return true;
 }
+
 
 FReply SSlateMain::SaveButtom()
 {
 	SaveNewPath();
+	
 	return FReply::Handled();
 }
 FReply SSlateMain::TTTButtom()
 {
-	texPath->SetText(FText::FromString("FContentBrowserSingleton"));
+	texPath->SetText(FText::FromString(""));
 	return FReply::Handled();
 }
 
