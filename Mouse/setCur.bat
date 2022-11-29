@@ -1,8 +1,8 @@
 md D:\Mouse
-copy /y peza*.cur D:\Mouse
+copy /y peza* D:\Mouse
 copy /y cakecur*.cur D:\Mouse
 
-reg add "HKEY_CURRENT_USER\Control Panel\Cursors" /v Arrow /t REG_EXPAND_SZ /d "D:\Mouse\peza.cur" /f
+reg add "HKEY_CURRENT_USER\Control Panel\Cursors" /v Arrow /t REG_EXPAND_SZ /d "D:\Mouse\peza1.ani" /f
 reg add "HKEY_CURRENT_USER\Control Panel\Cursors" /v Crosshair /t REG_EXPAND_SZ /d "D:\Mouse\peza+.cur" /f
 reg add "HKEY_CURRENT_USER\Control Panel\Cursors" /v Hand /t REG_EXPAND_SZ /d "D:\Mouse\cakecur_s.cur" /f
 reg add "HKEY_CURRENT_USER\Control Panel\Cursors" /v IBeam /t REG_EXPAND_SZ /d "D:\Mouse\pezaIB_kuai.cur" /f
