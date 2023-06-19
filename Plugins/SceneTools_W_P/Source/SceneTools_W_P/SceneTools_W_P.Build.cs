@@ -7,6 +7,8 @@ public class SceneTools_W_P : ModuleRules
 	public SceneTools_W_P(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+		//PrivatePCHHeaderFile 是 Unreal Engine 4 (UE4) 中的一个构建设置，用于指定私有模块或插件的预编译头文件 (PCH)。
+		// PrivatePCHHeaderFile = "SceneTools_W_PPCH.h"; //ProjectN项目PCH.h文件配置
 		//bUsePrecompiled = true;
 		PublicIncludePaths.AddRange(
 			new string[] {
@@ -25,7 +27,7 @@ public class SceneTools_W_P : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core", "SlateCore", "SlateCore", "Slate",
+				"Core", "SlateCore", "SlateCore", "Slate", "SkeletalMeshUtilitiesCommon"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -34,6 +36,7 @@ public class SceneTools_W_P : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"Core",
 				"Projects",
 				"InputCore",
 				"UnrealEd",
@@ -42,6 +45,7 @@ public class SceneTools_W_P : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"ToolMenus",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

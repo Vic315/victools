@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
+#include "Modules/ModuleInterface.h"
+// #include "Modules/ModuleManager.h"
 
 class FToolBarBuilder;
 class FMenuBuilder;

@@ -5,8 +5,9 @@
 #include "SceneTools_W_PCommands.h"
 #include "LevelEditor.h"
 #include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Layout/SBox.h"
-#include "Widgets/Text/STextBlock.h"
+#include "EditorStyle.h"
+// #include "Widgets/Layout/SBox.h"
+// #include "Widgets/Text/STextBlock.h"
 #include "Framework/MultiBox/MultiBoxBuilder.h"
 #include "SlateMain.h"
 
@@ -14,6 +15,7 @@ static const FName SceneTools_W_PTabName("SceneTools_W_P");
 
 #define LOCTEXT_NAMESPACE "FSceneTools_W_PModule"
 
+FString ST_Ver = "v1.9.10";
 void FSceneTools_W_PModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -33,20 +35,20 @@ void FSceneTools_W_PModule::StartupModule()
 	
 	{
 		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
-		MenuExtender->AddMenuExtension("WindowLayout", EExtensionHook::After, PluginCommands, FMenuExtensionDelegate::CreateRaw(this, &FSceneTools_W_PModule::AddMenuExtension));
+		MenuExtender->AddMenuExtension("windowLayout", EExtensionHook::After, PluginCommands, FMenuExtensionDelegate::CreateRaw(this, &FSceneTools_W_PModule::AddMenuExtension));
 
 		LevelEditorModule.GetMenuExtensibilityManager()->AddExtender(MenuExtender);
 	}
 	
-	//{
-	//	TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
-	//	ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, FToolBarExtensionDelegate::CreateRaw(this, &FSceneTools_W_PModule::AddToolbarExtension));
-	//	
-	//	LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(ToolbarExtender);
-	//}
-	
+	{
+		TSharedPtr<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+		ToolbarExtender->AddToolBarExtension("Settings", EExtensionHook::After, PluginCommands, FToolBarExtensionDelegate::CreateRaw(this, &FSceneTools_W_PModule::AddToolbarExtension));
+		LevelEditorModule.GetToolBarExtensibilityManager()->AddExtender(ToolbarExtender);
+	}
+	const FString vers = FString::Printf(TEXT("SceneTools  %s"), *ST_Ver);
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(SceneTools_W_PTabName, FOnSpawnTab::CreateRaw(this, &FSceneTools_W_PModule::OnSpawnPluginTab))
-		.SetDisplayName(LOCTEXT("FSceneTools_W_PTabTitle", "SceneTools"))
+		.SetDisplayName(FText::FromString(*vers))
+		// .SetDisplayName(LOCTEXT("FSceneTools_W_PTabTitle", "SceneTools"))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 	//FString ver = FString::Printf(TEXT("场景辅助工具 %s"), *ST_Ver);
 	//GEditor->AddOnScreenDebugMessage(-1, 10.f, FColor::Blue, *ver);
@@ -71,7 +73,8 @@ TSharedRef<SDockTab> FSceneTools_W_PModule::OnSpawnPluginTab(const FSpawnTabArgs
 		FText::FromString(TEXT("SceneTools_W_P.cpp"))
 		);
 
-		return SNew(SDockTab)
+		return SNew(SDockTab).TabRole(ETabRole::NomadTab)//通过将 TabRole 设置为 ETabRole::NomadTab，窗口将自动适应内容的大小(只适用于tab)
+		.ShouldAutosize(true)	//控件保持自身大小，不受界面窗口大小影响
 		[
 			SAssignNew(SlateMain, SSlateMain)
 		];
@@ -87,7 +90,6 @@ TSharedRef<SDockTab> FSceneTools_W_PModule::OnSpawnPluginTab(const FSpawnTabArgs
 		//	]
 		//];
 }
-
 void FSceneTools_W_PModule::PluginButtonClicked()
 {
 	FGlobalTabmanager::Get()->InvokeTab(SceneTools_W_PTabName);
