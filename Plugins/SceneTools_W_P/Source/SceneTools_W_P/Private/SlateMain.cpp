@@ -25,7 +25,7 @@
 #include "Editor.h"
 
 #include "Engine/AssetManager.h"
-#include "AssetToolsModule.h"
+// #include "AssetToolsModule.h"
 #include "Engine/Engine.h"
 #include "Engine/Selection.h"
 #include "Engine/Texture.h"
@@ -53,6 +53,7 @@
 // #include "Editor/UnrealEd/Public/ObjectTools.h"
 // #include "Editor/UnrealEd/Public/EditorViewportClient.h"
 
+#include "IAssetTools.h"
 #include "ContentBrowserModule.h"	//获取资源管理器选中对象
 #include "IContentBrowserSingleton.h"
 #include "AssetRegistry/Private/AssetRegistry.h"
@@ -65,11 +66,10 @@
 #include "Editor/Persona/Private/PersonaMeshDetails.h"
 #include "Developer/SkeletalMeshUtilitiesCommon/Public/LODUtilities.h"
 #include "Engine/SkeletalMeshLODSettings.h"
-#include "Editor/Persona/Private/PersonaMeshDetails.h"
-// #include "Features/EditorFeatures.h"
 
+// #include "Features/EditorFeatures.h"
+// #include <HAL/PlatformProcess.h>
 // #include "SkeletalMeshTypes.h"
-// #include "Toolkits/AssetEditorManager.h"
 
 #define LOCTEXT_NAMESPACE "SlateMain"
 
@@ -197,8 +197,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
             // [
             // 	SNew(STextBlock).Text(FText::FromString(*vers))
             // ]
-            + SVerticalBox::Slot().AutoHeight()
-                                  .Padding(2.0f) //间距
+            + SVerticalBox::Slot().AutoHeight().Padding(2.0f)
             [
                 SAssignNew(Expnv1,SExpandableArea) //可折疊面板
                 .AreaTitle(LOCTEXT("MyExpandable", "Scene Tools"))
@@ -206,24 +205,27 @@ void SSlateMain::Construct(const FArguments& InArgs)
                 .Padding(2.0f)
                 .HeaderContent()
                 [
+                    
                     SNew(SHorizontalBox)
                     + SHorizontalBox::Slot().AutoWidth()
                                             .HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(5.0f)
                     [SNew(STextBlock).Text(LOCTEXT("batch", "批处理:")).ColorAndOpacity(FLinearColor(0.2, 0.5, 0.98, 1.0))
                     ]
                     + SHorizontalBox::Slot()
-                      .HAlign(HAlign_Left).AutoWidth()
-                      .Padding(2.0f)[
-                        SAssignNew(phComBox, SComboBox<TSharedPtr<FString>>)
+                      .Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).AutoWidth()
+                      [
+                        SAssignNew(phComBox, SComboBox<TSharedPtr<FString>>).ForegroundColor(FLinearColor(0.36,0.34,0.3,1.0))
                         .OptionsSource(&phOpations)
                         .OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
                         .OnSelectionChanged(this, &SSlateMain::HandleSourceComboChanged)
                         .IsFocusable(true)[
                         	SNew(SBox)
                         ]
-                      ]
-                    + SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(2.0f)[
-                        SNew(STextBlock).Text(FText::FromString("Content/"))
+                        ]
+                    + SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)[
+                        SNew(SButton).Text(FText::FromString("Content/")).ButtonColorAndOpacity(FLinearColor(0.56,0.54,0.5,1.0))
+                                     .ToolTipText(FText::FromString(TEXT("提取选择的文件路径")))
+                                     .OnClicked(this, &SSlateMain::GetPath_Sel)
                     ]
                     + SHorizontalBox::Slot()
                       .HAlign(HAlign_Left)
@@ -232,9 +234,16 @@ void SSlateMain::Construct(const FArguments& InArgs)
                       .Padding(2.0f)
                     [
                         SAssignNew(texPath, SEditableTextBox).Text(FText::FromString(*pppp)).MinDesiredWidth(150)
-                        .BackgroundColor(FLinearColor(0.66,0.66,0.66,1.0))
+                        .BackgroundColor(FLinearColor(0.66,0.64,0.55,1.0))
                         .OnTextChanged(this, &SSlateMain::OnPathText)
-                    ]
+                        ]
+									  + SHorizontalBox::Slot()
+										.HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(0).AutoWidth()
+										.Padding(0.0f)[
+										  SNew(SButton).Text(FText::FromString(TEXT("<"))).ButtonColorAndOpacity(FLinearColor(0.56,0.54,0.5,1.0))
+										  .ToolTipText(FText::FromString(TEXT("跳转路径")))
+										  .OnClicked(this, &SSlateMain::BrowserToPath)
+									  ]
                     + SHorizontalBox::Slot()
                       .HAlign(HAlign_Left).AutoWidth()
                       .Padding(2.f)
@@ -254,12 +263,21 @@ void SSlateMain::Construct(const FArguments& InArgs)
                     ]
                     + SHorizontalBox::Slot()
                         	  .HAlign(HAlign_Fill).VAlign(VAlign_Center).FillWidth(20)
-                        	  .Padding(2.0f)[
-                        	  	SNew(SBox).WidthOverride(160.0f)[
+                        	  .Padding(1.0f)[
+                        	  	SNew(SBox).WidthOverride(130.0f)[
                         		SNew(SButton).Text(FText::FromString(TEXT("↑  ―― collapse ――  ↓"))).ButtonColorAndOpacity(FLinearColor(0.01,0.02,0.07,1.0))
                         .ForegroundColor(FLinearColor(0.79,0.79,0.79,1.0)).HAlign(HAlign_Center)
                         .OnClicked(this, &SSlateMain::testClicked)
                         	]]
+                        	+ SHorizontalBox::Slot().AutoWidth()
+								.HAlign(HAlign_Fill).VAlign(VAlign_Center).Padding(0.0f)
+								[
+                        	  	SNew(SBox).WidthOverride(22.0f).HAlign(HAlign_Center)[
+									SNew(SButton)
+						.Text(FText::FromString(TEXT("？"))).ButtonColorAndOpacity(FLinearColor(0.2,0.92,0.42,0.5)).ForegroundColor(FLinearColor(0.2,0.92,0.42,1.0))
+						.ToolTipText(FText::FromString(TEXT("帮助")))
+					.OnClicked(this, &SSlateMain::GoHelp)
+								]]
                 ]
                 .BodyContent()[
                     SNew(SVerticalBox)
@@ -449,7 +467,7 @@ void SSlateMain::Construct(const FArguments& InArgs)
                         ]]
                         + SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)[
                                             	SNew(SButton).Text(FText::FromString(TEXT("LOD批处理"))).ButtonColorAndOpacity(FLinearColor(0.4,0.9,0.9,1.0))
-                                            	.ToolTipText(FText::FromString(TEXT("批处理指定目录里包含关键字的静态模型 LOD，如果要列出全部文件搜索关键字输入：allmesh\n(处理列表文件保存到 D:盘根目录以文件夹命名) (仅支持StaticMesh类型)")))
+                                            	.ToolTipText(FText::FromString(TEXT("批处理指定目录里包含关键字的静态模型 LOD\n(处理列表文件保存到 D:盘根目录以文件夹命名) (仅支持StaticMesh类型)")))
                                             	.OnClicked(this, &SSlateMain::largePropLODsets)
                                             ]
                         + SHorizontalBox::Slot().AutoWidth().HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)[
@@ -574,24 +592,36 @@ void SSlateMain::Construct(const FArguments& InArgs)
                                 SAssignNew(DisplayLODTri,STextBlock).Text(FText::FromString(TEXT(""))).ColorAndOpacity(FLinearColor(0.39,0.84,0.333,1.0))
                             ]
                         ]
-                        + SVerticalBox::Slot().AutoHeight().Padding(1.0f)
+                        + SVerticalBox::Slot().AutoHeight()
                         [
                         	SNew(SHorizontalBox)
+                        	
+                        	
                             + SHorizontalBox::Slot().AutoWidth()
-                                                	.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(1.0f)
+                                                	.HAlign(HAlign_Left).VAlign(VAlign_Center).Padding(0.0f)
                             [
-                                SNew(STextBlock).Text(FText::FromString(TEXT(" Content/"))).ColorAndOpacity(FLinearColor(FLinearColor(0.79,0.114,0.333,1.0)))
+                            SNew(SButton).Text(FText::FromString(TEXT(" Content/"))).ForegroundColor(FLinearColor(0.79,0.114,0.333,1.0))
+                            .ButtonColorAndOpacity(FLinearColor(0.09,0.04,0.03,1.0))
+                            .ToolTipText(FText::FromString(TEXT("提取选择的文件路径")))
+								 .OnClicked(this, &SSlateMain::GetPath_Sel2)
                             ]
                         	+ SHorizontalBox::Slot()
                         	  .HAlign(HAlign_Left)
                         	  .AutoWidth()
-                        	  .MaxWidth(197)
+                        	  .MaxWidth(134)
                         	  .Padding(2.0f)
                         	[
-                        		SAssignNew(loddataPath, SEditableTextBox).Text(FText::FromString(*lodpppp)).MinDesiredWidth(150)
-                        		.BackgroundColor(FLinearColor(0.66,0.66,0.66,1.0))
+                        		SAssignNew(loddataPath, SEditableTextBox).Text(FText::FromString(*lodpppp)).MinDesiredWidth(134)
+                        		.BackgroundColor(FLinearColor(0.89,0.214,0.433,1.0))
                         		.OnTextChanged(this, &SSlateMain::LodDataOnPathText)
                         		]
+                        		+ SHorizontalBox::Slot()
+								.HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(0).AutoWidth()
+								.Padding(0.0f)[
+								  SNew(SButton).Text(FText::FromString(TEXT("<"))).ButtonColorAndOpacity(FLinearColor(0.09,0.04,0.03,1.0)).ForegroundColor(FLinearColor(0.79,0.114,0.333,1.0))
+								  .ToolTipText(FText::FromString(TEXT("跳转路径")))
+								  .OnClicked(this, &SSlateMain::BrowserToPath2)
+							  ]
                         		+ SHorizontalBox::Slot()
                         		  .HAlign(HAlign_Left).VAlign(VAlign_Center).FillWidth(4).AutoWidth()
                         		  .Padding(2.0f)[
@@ -599,19 +629,20 @@ void SSlateMain::Construct(const FArguments& InArgs)
                         			.ToolTipText(FText::FromString(TEXT("刷新SkeletalMeshLODSettings列表")))
                         			.OnClicked(this, &SSlateMain::LoadLODDataUI)
                         		]
-                        		+ SHorizontalBox::Slot().Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).AutoWidth()
-                        												[
-                        													SAssignNew(LODdataComb,SComboBox<TSharedPtr<FString>>).ToolTipText(FText::FromString(TEXT("当没有指定LOD Data时将使用上面的LOD组来定义LOD级数")))	//需要使用LODdataComb->RefreshOptions()刷新列表
-                        													.OptionsSource(&LODDataOpations)
-                        													.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
-                        													.OnSelectionChanged(this, &SSlateMain::LODData_ComboChanged)
-                        													.IsFocusable(true)[
-                        														SNew(SBox)
-                        													]
-                        												]
-                        		+ SHorizontalBox::Slot().Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).MaxWidth(97)
+                        		+ SHorizontalBox::Slot()
+                        		.Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).AutoWidth()
                         		[
-                        			SAssignNew(LODDataTxt, SEditableTextBox).Text(FText::FromString("")).MinDesiredWidth(97)
+                        			SAssignNew(LODdataComb,SComboBox<TSharedPtr<FString>>).ToolTipText(FText::FromString(TEXT("当没有指定LOD Data时将使用上面的LOD组来定义LOD级数")))	//需要使用LODdataComb->RefreshOptions()刷新列表
+                        			.OptionsSource(&LODDataOpations).ForegroundColor(FLinearColor(0.09,0.04,0.03,1.0))
+                        			.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
+                        			.OnSelectionChanged(this, &SSlateMain::LODData_ComboChanged)
+                        			.IsFocusable(true)[
+                        				SNew(SBox)
+                        			]
+                        		]
+                        		+ SHorizontalBox::Slot().Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).MaxWidth(144)
+                        		[
+                        			SAssignNew(LODDataTxt, SEditableTextBox).Text(FText::FromString("")).MinDesiredWidth(144)
                         			.BackgroundColor(FLinearColor(0.09f,0.075f,0.13f,1.0f))
                         			.ForegroundColor(FLinearColor(0.89,0.214,0.433,1.0))
                         		]
@@ -1144,14 +1175,14 @@ FReply SSlateMain::XArray_Clicked()
 		TArray<AActor*> SelectedActors;
 		SelectedActors.Reserve(SelectionSet->Num());
 		SelectionSet->GetSelectedObjects(SelectedActors);
-		AActor* ppp = SelectedActors[SelectedActors.Num() - 1];
+		const AActor* ppp = SelectedActors[SelectedActors.Num() - 1];
 		FVector pO, pE;
 		ppp->GetActorBounds(true, pO, pE);
 		float SpAdd = pO.Y;
 		float RowSpAdd = 0.f;
 		float RowSp = pO.X;
 		int CN = 0;
-		int Rows = arrayRow->GetValue();
+		const int Rows = arrayRow->GetValue();
 		for (AActor* Actor : SelectedActors)
 		{
 			if (Actor->GetFName() != ppp->GetFName())
@@ -1838,6 +1869,32 @@ FReply SSlateMain::ResetTextureLODBias()
 	return FReply::Handled();
 }
 
+FReply SSlateMain::GetPath_Sel2()	//提取选择的文件路径
+{
+	const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+    TArray<FAssetData> SelectedAssets;
+    ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
+    if(SelectedAssets.Num()>0)
+    {
+    	FString MatR;
+    	SelectedAssets[0].PackagePath.ToString().Split("Game/", nullptr, &MatR);
+    	loddataPath->SetText(FText::FromString(*MatR));
+    }
+    return FReply::Handled();
+}
+FReply SSlateMain::GetPath_Sel()	//提取选择的文件路径
+{
+	const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+    TArray<FAssetData> SelectedAssets;
+    ContentBrowserModule.Get().GetSelectedAssets(SelectedAssets);
+    if(SelectedAssets.Num()>0)
+    {
+    	FString MatR;
+    	SelectedAssets[0].PackagePath.ToString().Split("Game/", nullptr, &MatR);
+    	texPath->SetText(FText::FromString(*MatR));
+    }
+    return FReply::Handled();
+}
 FReply SSlateMain::GetLODsets_Sel()	//提取参数
 {
 	const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
@@ -1880,7 +1937,7 @@ FReply SSlateMain::GetLODsets_Sel()	//提取参数
 	    			if(lodTriangles=="")
 	    				lodTriangles+=FString::Printf(TEXT("(LOD%i:▲ %i )"),I,StaticMesh->RenderData->LODResources[I].GetNumTriangles());
 	                else
-						lodTriangles+=FString::Printf(TEXT("\t(LOD%i:▲ %i )"),I,StaticMesh->RenderData->LODResources[I].GetNumTriangles());
+						lodTriangles+=FString::Printf(TEXT("   (LOD%i:▲ %i )"),I,StaticMesh->RenderData->LODResources[I].GetNumTriangles());
 	    			allSS[I]->SetValue(SourceModel.ScreenSize.Default);
 	    			allPT[I]->SetValue(static_cast<int>(round(SourceModel.ReductionSettings.PercentTriangles * 100)));	//使用static_cast<int>(round(...))将小数计算自动四舍五入输出整数
 	    		}
@@ -1975,7 +2032,7 @@ FReply SSlateMain::GetLODsets_Sel()	//提取参数
 	    		if(lodTriangles=="")
 	    			lodTriangles+=FString::Printf(TEXT("(LOD%i:▲ %i )"),LODi,SKMesh->GetResourceForRendering()->LODRenderData[LODi].GetTotalFaces());
 	    		else
-	    			lodTriangles+=FString::Printf(TEXT("\t(LOD%i:▲ %i )"),LODi,SKMesh->GetResourceForRendering()->LODRenderData[LODi].GetTotalFaces());
+	    			lodTriangles+=FString::Printf(TEXT("   (LOD%i:▲ %i )"),LODi,SKMesh->GetResourceForRendering()->LODRenderData[LODi].GetTotalFaces());
 	    		DisplayLODTri->SetText(lodTriangles);
 	    		// GEngine->AddOnScreenDebugMessage(-1, 126.f, FColor::Blue, FString::Printf(TEXT("NumOfTrianglesPercentage : %f "), ReductionSettings.NumOfTrianglesPercentage));
 	    	}
@@ -2333,163 +2390,168 @@ FReply SSlateMain::largePropLODsets()	//批量处理LODLargeProp
 }
 FReply SSlateMain::listLODdetails()	//列出静态网格模型的LOD细节
 {
-    FString pp = texPath->GetText().ToString();
-	FText const Title = LOCTEXT("title1","列出LOD详情");
-	FString meg = FString::Printf(TEXT("是否列出指定目录中的所有静态网格的LOD等级和每一级的三角面数?\n如果要列出全部文件，搜索关键字输入：allmesh\n目录：Content/%s"), *pp);
-	FText const DialogText = FText::FromString(*meg);
-    EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
-    if (ReturnType == EAppReturnType::Type::Ok)
-    {
-        FARFilter Filter;
-        FString pName;
-        if (pp != "")
-        {
-        	//查找路径是否是反斜杠，如果是切割并替换成正斜杠
-        	if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
-        	{
-        		FString newP = "";
-        		TArray<FString> SArr;
-        		pp.ParseIntoArray(SArr, TEXT("\\"), false);
-        		for (const FString sss : SArr)
-        		{
-        			newP += sss + "/";
-        		}
-        		pp = newP;
-        	}
-        	FString en = pp.Right(1);
-        	if (en == "/")
-        		pp = pp.LeftChop(1);
-        	//提取最后一个目录名 pName
-        	TArray<FString> SArr;
-        	pp.ParseIntoArray(SArr, TEXT("/"), false);
-        	pName = SArr[SArr.Num() - 1];
-        	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
-        }else
-        {
-        	pName = "Content";
-        	Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
-        }
-        const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
-        const IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+	if (suffixSeach->GetText().ToString() != "")
+	{
+		FString pp = texPath->GetText().ToString();
+		FText const Title = LOCTEXT("title1","列出LOD详情");
+		FString meg = FString::Printf(TEXT("是否列出指定目录中的所有静态网格的LOD等级和每一级的三角面数?\n如果要列出全部文件，搜索关键字输入：allmesh\n目录：Content/%s"), *pp);
+		FText const DialogText = FText::FromString(*meg);
+		EAppReturnType::Type const ReturnType = FMessageDialog::Open(EAppMsgType::OkCancel, DialogText, &Title);
+		if (ReturnType == EAppReturnType::Type::Ok)
+		{
+			FARFilter Filter;
+			FString pName;
+			if (pp != "")
+			{
+				//查找路径是否是反斜杠，如果是切割并替换成正斜杠
+				if (pp.Find(TEXT("\\"), ESearchCase::IgnoreCase, ESearchDir::FromStart, INDEX_NONE) != INDEX_NONE)
+				{
+					FString newP = "";
+					TArray<FString> SArr;
+					pp.ParseIntoArray(SArr, TEXT("\\"), false);
+					for (const FString sss : SArr)
+					{
+						newP += sss + "/";
+					}
+					pp = newP;
+				}
+				FString en = pp.Right(1);
+				if (en == "/")
+					pp = pp.LeftChop(1);
+				//提取最后一个目录名 pName
+				TArray<FString> SArr;
+				pp.ParseIntoArray(SArr, TEXT("/"), false);
+				pName = SArr[SArr.Num() - 1];
+				Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game/%s"), *pp)); //设置资源路径,需要FName類型字符 *FString 前面加星號解引出來使用
+			}else
+			{
+				pName = "Content";
+				Filter.PackagePaths.Add(*FString::Printf(TEXT("/Game")));
+			}
+			const FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+			const IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
-        TArray<FAssetData> AssetDataList;
-        // Filter.ClassNames.Add(UStaticMesh::StaticClass()->GetFName());
-        // Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
-        if (RPath->IsChecked())
-        {   //遞歸搜尋路径，查找子目录
-        	Filter.bRecursivePaths = true;
-        }
-        else
-        {
-        	Filter.bRecursivePaths = false;
-        }
-        Filter.bRecursiveClasses = true;
-        AssetRegistry.GetAssets(Filter, AssetDataList);
-        FString FileName = FString::Printf(TEXT("d:/LOD-Resource_%s.txt"), *pName);
-		UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个文件"), AssetDataList.Num());
-		GEngine->AddOnScreenDebugMessage(-1, 26.f, FColor::Yellow, FString::Printf(TEXT("共搜索 %i 个文件"), AssetDataList.Num()));
-		int cou = 0;
-		FString Content;
-        for (const FAssetData& AssetData : AssetDataList)
-        {
-        	FString Nam = *AssetData.AssetName.ToString();
-            if (Nam.Find(suffixSeach->GetText().ToString()) >= 0 || suffixSeach->GetText().ToString() == "allmesh")
-        	if (AssetData.AssetClass.ToString() == UStaticMesh::StaticClass()->GetName())
-        	{
-        		FStringAssetReference AssetRef(AssetData.ObjectPath.ToString());
-        		UStaticMesh* StaticMesh = Cast<UStaticMesh>(AssetRef.TryLoad());
-                if (StaticMesh)
-                {
-                	*StaticMesh->GetName();
-                    // 在这里修改 StaticMesh 对象
-					FString AutoCom;
-                    // const int32 Gnl = StaticMesh->GetNumLODs();	//获取LOD数量
-                    // StaticMesh->bAutoComputeLODScreenSize = false;	//取消勾选(Auto Compute LOD Distances)
-                    if (StaticMesh->bAutoComputeLODScreenSize == false)
-                    {
-                        AutoCom = FString::Printf(TEXT("取消"));
-                    }
-                    else
-                    {
-                        AutoCom = FString::Printf(TEXT("勾选"));
-                    }
-                    cou += 1;
-                    FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;	//获取静态网格渲染数据
-                    // RenderData.ScreenSize;
-                    FString SSNS = "";
-                    FString SSerr = "";
-                    FString bound = StaticMesh->GetBounds().BoxExtent.ToString();
-                    const int32 LRN = RenderData.LODResources.Num();
-                    if (LRN > 0)
-                    {
-                        int32 Rc = 0;
-                        for (FStaticMeshLODResources& LODR : RenderData.LODResources)
-                        {
-                            const FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(Rc);	//获取每一级LOD中的ScreenSize值（SourceModel.ScreenSize.Default）
-                            float ScrSize = SourceModel.ScreenSize.Default;
-                            float PT = SourceModel.ReductionSettings.PercentTriangles;
-                            SSNS += FString::Printf(TEXT(" ◆[LOD_%i:▲%i]  [Screen_Size:%s] [PrecentTri:%s] "), Rc, LODR.GetNumTriangles(), *RemoveTrailingZeros(ScrSize), *RemoveTrailingZeros(PT));
-                            if (ScrSize == 0.0f){
-                            	SSerr += FString::Printf(TEXT(" [LOD_%i]●ScreenSize设置有误"),Rc);
-                            }
-                            Rc += 1;
-                        }
-                        if(SSerr != ""){SSerr = FString::Printf(TEXT("  【%s】"),*SSerr);}
-                        // LODResource.Sections[0].bCastShadow=false;
-                        Content += FString::Printf(TEXT("%s\t[StaticMesh][LOD数量:%i]  (%s)  [Auto_Compute_LOD_Distances:%s] [Bounds:%s] %s\n"), *Nam, LRN, *SSNS, *AutoCom, *bound, *SSerr);
-                        //GEngine->AddOnScreenDebugMessage(-1, 156.f, FColor::Green, FString::Printf(TEXT("%s   LODs:%i)  (%s)"), *Nam, LRN, *SSNS));
-                    }
-                    //标记为修改*
-                    // StaticMesh->AddToRoot();
-                    // StaticMesh->MarkPackageDirty();
-                }
-        	}
-            else if(AssetData.AssetClass.ToString() == USkeletalMesh::StaticClass()->GetName())
-            {
-                FStringAssetReference AssetRef(AssetData.ObjectPath.ToString());
-                USkeletalMesh* SKMesh = Cast<USkeletalMesh>(AssetRef.TryLoad());
-                if (SKMesh)
-                {
-                	FString SSNS = "";
-                	FString SSerr = "";
-                	FString bound = SKMesh->GetBounds().BoxExtent.ToString();
-                	const int Lods = SKMesh->GetLODNum();
-                	cou += 1;
-                	if (Lods > 0)
-                	{
-                		for(int32 LODi = 0; LODi < Lods; ++LODi)
-                		{
-                			const FSkeletalMeshLODInfo* LODInfo = SKMesh->GetLODInfo(LODi);
-                			float ScrSize = LODInfo->ScreenSize.Default;
-                			const FSkeletalMeshOptimizationSettings& ReductionSettings = LODInfo->ReductionSettings;
-                			float PT = ReductionSettings.NumOfTrianglesPercentage;
+			TArray<FAssetData> AssetDataList;
+			// Filter.ClassNames.Add(UStaticMesh::StaticClass()->GetFName());
+			// Filter.ClassNames.Add(USkeletalMesh::StaticClass()->GetFName());
+			if (RPath->IsChecked())
+			{   //遞歸搜尋路径，查找子目录
+				Filter.bRecursivePaths = true;
+			}
+			else
+			{
+				Filter.bRecursivePaths = false;
+			}
+			Filter.bRecursiveClasses = true;
+			AssetRegistry.GetAssets(Filter, AssetDataList);
+			FString FileName = FString::Printf(TEXT("d:/LOD-Resource_%s.txt"), *pName);
+			UE_LOG(LogTemp, Warning, TEXT("共搜索 %i 个文件"), AssetDataList.Num());
+			GEngine->AddOnScreenDebugMessage(-1, 26.f, FColor::Yellow, FString::Printf(TEXT("共搜索 %i 个文件"), AssetDataList.Num()));
+			int cou = 0;
+			FString Content;
+			for (const FAssetData& AssetData : AssetDataList)
+			{
+				FString Nam = *AssetData.AssetName.ToString();
+				if (Nam.Find(suffixSeach->GetText().ToString()) >= 0 || suffixSeach->GetText().ToString() == "aaa")
+					if (AssetData.AssetClass.ToString() == UStaticMesh::StaticClass()->GetName())
+					{
+						FStringAssetReference AssetRef(AssetData.ObjectPath.ToString());
+						UStaticMesh* StaticMesh = Cast<UStaticMesh>(AssetRef.TryLoad());
+						if (StaticMesh)
+						{
+							*StaticMesh->GetName();
+							// 在这里修改 StaticMesh 对象
+							FString AutoCom;
+							// const int32 Gnl = StaticMesh->GetNumLODs();	//获取LOD数量
+							// StaticMesh->bAutoComputeLODScreenSize = false;	//取消勾选(Auto Compute LOD Distances)
+							if (StaticMesh->bAutoComputeLODScreenSize == false)
+							{
+								AutoCom = FString::Printf(TEXT("取消"));
+							}
+							else
+							{
+								AutoCom = FString::Printf(TEXT("勾选"));
+							}
+							cou += 1;
+							FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;	//获取静态网格渲染数据
+							// RenderData.ScreenSize;
+							FString SSNS = "";
+							FString SSerr = "";
+							FString bound = StaticMesh->GetBounds().BoxExtent.ToString();
+							const int32 LRN = RenderData.LODResources.Num();
+							if (LRN > 0)
+							{
+								int32 Rc = 0;
+								for (FStaticMeshLODResources& LODR : RenderData.LODResources)
+								{
+									const FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(Rc);	//获取每一级LOD中的ScreenSize值（SourceModel.ScreenSize.Default）
+									float ScrSize = SourceModel.ScreenSize.Default;
+									float PT = SourceModel.ReductionSettings.PercentTriangles;
+									SSNS += FString::Printf(TEXT(" ◆[LOD_%i:▲%i]  [Screen_Size:%s] [PrecentTri:%s] "), Rc, LODR.GetNumTriangles(), *RemoveTrailingZeros(ScrSize), *RemoveTrailingZeros(PT));
+									if (ScrSize == 0.0f){
+										SSerr += FString::Printf(TEXT(" [LOD_%i]●ScreenSize设置有误"),Rc);
+									}
+									Rc += 1;
+								}
+								if(SSerr != ""){SSerr = FString::Printf(TEXT("  【%s】"),*SSerr);}
+								// LODResource.Sections[0].bCastShadow=false;
+								Content += FString::Printf(TEXT("%s\t[StaticMesh][LOD数量:%i]  (%s)  [Auto_Compute_LOD_Distances:%s] [Bounds:%s] %s\n"), *Nam, LRN, *SSNS, *AutoCom, *bound, *SSerr);
+								//GEngine->AddOnScreenDebugMessage(-1, 156.f, FColor::Green, FString::Printf(TEXT("%s   LODs:%i)  (%s)"), *Nam, LRN, *SSNS));
+							}
+							//标记为修改*
+							// StaticMesh->AddToRoot();
+							// StaticMesh->MarkPackageDirty();
+						}
+					}
+					else if(AssetData.AssetClass.ToString() == USkeletalMesh::StaticClass()->GetName())
+					{
+						FStringAssetReference AssetRef(AssetData.ObjectPath.ToString());
+						USkeletalMesh* SKMesh = Cast<USkeletalMesh>(AssetRef.TryLoad());
+						if (SKMesh)
+						{
+							FString SSNS = "";
+							FString SSerr = "";
+							FString bound = SKMesh->GetBounds().BoxExtent.ToString();
+							const int Lods = SKMesh->GetLODNum();
+							cou += 1;
+							if (Lods > 0)
+							{
+								for(int32 LODi = 0; LODi < Lods; ++LODi)
+								{
+									const FSkeletalMeshLODInfo* LODInfo = SKMesh->GetLODInfo(LODi);
+									float ScrSize = LODInfo->ScreenSize.Default;
+									const FSkeletalMeshOptimizationSettings& ReductionSettings = LODInfo->ReductionSettings;
+									float PT = ReductionSettings.NumOfTrianglesPercentage;
                 			
-                			SSNS += FString::Printf(TEXT(" ◆[LOD_%i:▲%i]  [Screen_Size:%s] [PrecentTri:%s] "), LODi, SKMesh->GetResourceForRendering()->LODRenderData[LODi].GetTotalFaces(), *RemoveTrailingZeros(ScrSize), *RemoveTrailingZeros(PT));
-                			if (ScrSize == 0.0f){
-                				SSerr += FString::Printf(TEXT(" [LOD_%i]●ScreenSize设置有误"),LODi);
-                			}
-                			// GEngine->AddOnScreenDebugMessage(-1, 126.f, FColor::Blue, FString::Printf(TEXT("NumOfTrianglesPercentage : %f "), ReductionSettings.NumOfTrianglesPercentage));
-                		}
-                        Content += FString::Printf(TEXT("%s\t[SkeletalMesh][LOD数量:%i]  (%s)  [Bounds:%s] %s\n"), *Nam, Lods, *SSNS, *bound, *SSerr);
-                	}
-                }
-            }
-        }
-        if (cou > 0)
-        {
-            Content += FString::Printf(TEXT("共搜索 %i 个模型文件, 如上列出 %i 个文件\n"),AssetDataList.Num() ,cou);
-            UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
-            FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
-            //打开创建的txt文本
-            if (openTxt->IsChecked())
-            {
-                FString FP = FString::Printf(TEXT("start %s"), *FileName);
-                system(TCHAR_TO_UTF8(*FP));
-            }
-            UE_LOG(LogTemp, Warning, TEXT("共修改 %i 个文件"), cou);
-            GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Yellow, FString::Printf(TEXT("共处理 %i 个文件"), cou));
-        }
-    }
+									SSNS += FString::Printf(TEXT(" ◆[LOD_%i:▲%i]  [Screen_Size:%s] [PrecentTri:%s] "), LODi, SKMesh->GetResourceForRendering()->LODRenderData[LODi].GetTotalFaces(), *RemoveTrailingZeros(ScrSize), *RemoveTrailingZeros(PT));
+									if (ScrSize == 0.0f){
+										SSerr += FString::Printf(TEXT(" [LOD_%i]●ScreenSize设置有误"),LODi);
+									}
+									// GEngine->AddOnScreenDebugMessage(-1, 126.f, FColor::Blue, FString::Printf(TEXT("NumOfTrianglesPercentage : %f "), ReductionSettings.NumOfTrianglesPercentage));
+								}
+								Content += FString::Printf(TEXT("%s\t[SkeletalMesh][LOD数量:%i]  (%s)  [Bounds:%s] %s\n"), *Nam, Lods, *SSNS, *bound, *SSerr);
+							}
+						}
+					}
+			}
+			if (cou > 0)
+			{
+				Content += FString::Printf(TEXT("共搜索 %i 个模型文件, 如上列出 %i 个文件\n"),AssetDataList.Num() ,cou);
+				UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
+				FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
+				//打开创建的txt文本
+				if (openTxt->IsChecked())
+				{
+					FString FP = FString::Printf(TEXT("start %s"), *FileName);
+					system(TCHAR_TO_UTF8(*FP));
+				}
+				UE_LOG(LogTemp, Warning, TEXT("共修改 %i 个文件"), cou);
+				GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Yellow, FString::Printf(TEXT("共处理 %i 个文件"), cou));
+			}
+		}
+	}else{
+		GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Red, FString::Printf(TEXT("搜索关键字中需要填入关键字，输入：aaa 将处理全部文件")));
+	}
     return FReply::Handled();
 }
 FString SSlateMain::RemoveTrailingZeros(float value)	//约束小数点在3位数
@@ -3188,7 +3250,7 @@ void SSlateMain::LodDataGetVal(const FString LODtt)
 	if(LODtt != "")
 	{	TArray<TSharedPtr<SSpinBox<float>>> allSS = {SS_0, SS_1, SS_2, SS_3};	//初始化数组存放变量
 		TArray<TSharedPtr<SSpinBox<int>>> allPT = {PT_0, PT_1, PT_2, PT_3};
-		TCHAR Pat[512];	//用于
+		TCHAR Pat[512];	//用于存放AssetData文件路径
 		const FString LODpp = FString::Printf(TEXT("SkeletalMeshLODSettings'/Game/%s/%s.%s'"),*lodpppp,*LODtt,*LODtt);
         FCString::Strncpy(Pat, *LODpp, 511);
 		const USkeletalMeshLODSettings* SKMSettings = Cast<USkeletalMeshLODSettings>(StaticLoadObject(USkeletalMeshLODSettings::StaticClass(), nullptr, Pat));
@@ -3286,7 +3348,7 @@ FReply SSlateMain::Createlodset()
 			}
 			MyDataAsset->Modify();
 
-			GEngine->AddOnScreenDebugMessage(-1, 7.f, FColor::Yellow, FString::Printf(TEXT("Test: %i"),lodnum));
+			GEngine->AddOnScreenDebugMessage(-1, 7.f, FColor::Blue, FString::Printf(TEXT("%s.LODs: %i"),*MyDataAsset->GetName(),lodnum));
 		}
 		if(dname!="")
 		{
@@ -3510,16 +3572,49 @@ TSharedRef<class SWidget> SSlateMain::comp_ComboItem(TSharedPtr<FString> InItem)
 	return SNew(STextBlock).Text(FText::FromString(*InItem));
 }
 
-
 void SSlateMain::HandleSourceComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
 {
 	//SelectInfo = ESelectInfo::OnKeyPress;
-	SaveNewPath();
+	//SaveNewPath();
 	texPath->SetText(FText::FromString(*Item));
-	FString aa = LexToString(*phComBox->GetSelectedItem());
+	const FString aa = LexToString(*phComBox->GetSelectedItem());
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, aa);
 }
 
+FReply SSlateMain::BrowserToPath()
+{
+	const FString Path = FString::Printf(TEXT("/Game/%s"),*texPath->GetText().ToString());
+    
+    const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+    IContentBrowserSingleton& ContentBrowserSingleton = ContentBrowserModule.Get();
+
+    TArray<FString> PathsToSync;
+    PathsToSync.Add(Path);
+
+    ContentBrowserSingleton.SetSelectedPaths(PathsToSync);
+	return FReply::Handled();
+}
+FReply SSlateMain::BrowserToPath2()
+{
+	const FString Path = FString::Printf(TEXT("/Game/%s"),*loddataPath->GetText().ToString());
+    
+    const FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+    IContentBrowserSingleton& ContentBrowserSingleton = ContentBrowserModule.Get();
+
+    TArray<FString> PathsToSync;
+    PathsToSync.Add(Path);
+
+    ContentBrowserSingleton.SetSelectedPaths(PathsToSync);
+	return FReply::Handled();
+}
+FReply SSlateMain::GoHelp()
+{
+	FString URL = TEXT("https://www.wolai.com/iQX4XvaMRNGbtrR7NB4h9E"); // 要打开的网页链接
+
+	// 使用UE4的浏览器功能打开网页链接
+	FPlatformProcess::LaunchURL(*URL, nullptr, nullptr);
+	return FReply::Handled();
+}
 void SSlateMain::SaveNewPath()
 {
 	FString pText = texPath->GetText().ToString();
@@ -3652,7 +3747,6 @@ FReply SSlateMain::LoadLODData(FString lodp)	//读取目录中的LOD DataAsset �
 FReply SSlateMain::SaveButtom()
 {
 	SaveNewPath();
-	
 	return FReply::Handled();
 }
 void SSlateMain::OnSelTextChanged(const FText& Text)

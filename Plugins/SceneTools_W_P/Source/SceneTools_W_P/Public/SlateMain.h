@@ -10,8 +10,8 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Layout/SExpandableArea.h"
 #include "Containers/UnrealString.h"
-#include "Engine/Blueprint.h"
-#include "Templates/SubclassOf.h"
+//#include "Engine/Blueprint.h"
+//#include "Templates/SubclassOf.h"
 
 class SSlateMain :public SCompoundWidget {
 
@@ -51,6 +51,8 @@ class SSlateMain :public SCompoundWidget {
 		FReply SetTextureMax(); //设置贴图尺寸
 		FReply ResetTextureLODBias(); //重置LOD Bias
 		FReply GetLODsets_Sel();
+		FReply GetPath_Sel();
+		FReply GetPath_Sel2();
 		FReply largePropLODsets_Sel();
 		FReply removeM_Sel();
 		FReply largePropLODsets();
@@ -86,6 +88,10 @@ class SSlateMain :public SCompoundWidget {
 		//ComBox 事件聲明
 		TSharedRef<class SWidget> comp_ComboItem(TSharedPtr<FString> InItem);
 		void HandleSourceComboChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo);
+		FReply BrowserToPath();
+		FReply BrowserToPath2();
+		FReply GoHelp();
+
 		void SaveNewPath();
 		void ReflashHist();	//刷新路徑記錄
 		FString ReadTxt(FString PN);
@@ -95,7 +101,6 @@ class SSlateMain :public SCompoundWidget {
 		void OnSelTextChanged(const FText& Text);
 		FReply AddPerfix();
 		FReply SelectFromText();
-		// FReply TTTButtom();
 		FReply CloneActor();
 		FReply SelSameObj();
 

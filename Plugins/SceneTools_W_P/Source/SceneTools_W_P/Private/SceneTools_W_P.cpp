@@ -15,7 +15,7 @@ static const FName SceneTools_W_PTabName("SceneTools_W_P");
 
 #define LOCTEXT_NAMESPACE "FSceneTools_W_PModule"
 
-FString ST_Ver = "v1.9.10";
+FString ST_Ver = "v1.9.12";
 void FSceneTools_W_PModule::StartupModule()
 {
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
