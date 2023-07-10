@@ -476,15 +476,15 @@ void SSlateMain::Construct(const FArguments& InArgs)
                             .OnClicked(this, &SSlateMain::largePropLODsets_Sel)
                             ]
                             + SHorizontalBox::Slot().Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).AutoWidth()
-                        											[
-                        												SNew(SComboBox<TSharedPtr<FString>>).ToolTipText(FText::FromString(TEXT("选择LOD组定义LOD的级数")))
-                        												.OptionsSource(&LODGrpOpations)
-                        												.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
-                        												.OnSelectionChanged(this, &SSlateMain::LOD_ComboChanged)
-                        												.IsFocusable(true)[
-                        													SNew(SBox)
-                        												]
-                        											]
+                        		[
+                        			SNew(SComboBox<TSharedPtr<FString>>).ToolTipText(FText::FromString(TEXT("选择LOD组定义LOD的级数")))
+                        			.OptionsSource(&LODGrpOpations)
+                        			.OnGenerateWidget(this, &SSlateMain::comp_ComboItem)
+                        			.OnSelectionChanged(this, &SSlateMain::LOD_ComboChanged)
+                        			.IsFocusable(true)[
+                        				SNew(SBox)
+                        			]
+                        		]
                         	+ SHorizontalBox::Slot().Padding(1.0f).HAlign(HAlign_Left).VAlign(VAlign_Center).MaxWidth(100)
                         	[
                         		SAssignNew(LODGroupTxt, SEditableTextBox).Text(FText::FromString("LargeProp"))
@@ -2071,34 +2071,52 @@ FReply SSlateMain::largePropLODsets_Sel()	//批量处理资源管理器中选择
 	        	if (AssetData.AssetClass == UStaticMesh::StaticClass()->GetFName())
 	        	{
 	        		UStaticMesh* StaticMesh = Cast<UStaticMesh>(AssetData.GetAsset());
-	        		if (StaticMesh){
+	        		if (StaticMesh)
+	        		{
 	        			FString Nam = StaticMesh->GetName();
-	        			StaticMesh->SetLODGroup(*LODGroupTxt->GetText().ToString());
+	        			
+	        			//默认引擎版本使用 SetNumSourceModels 来设置LOD数量
+	        			FString LG = LODGroupTxt->GetText().ToString();
+	        			StaticMesh->SetLODGroup(*LG);
+	        			// StaticMesh->Modify();
+	        			if(LG == "SmallProp")
+	        				StaticMesh->SetNumSourceModels(2);
+	        			if(LG == "LargeProp")
+	        				StaticMesh->SetNumSourceModels(3);
+	        			if(LG == "LevelArchitecture")
+	        				StaticMesh->SetNumSourceModels(4);
 	        			StaticMesh->bAutoComputeLODScreenSize = false;
-	        			FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;	//获取静态网格渲染数据
-	        			int32 Rc = 0;
-	                    const int32 LODs = StaticMesh->GetNumLODs();
-	        			for (FStaticMeshLODResources& LODR : RenderData.LODResources)
-	        			{
-	        				FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(Rc);	//获取每一级LOD中的ScreenSize值（SourceModel.ScreenSize.Default）
-	        				SourceModel.ScreenSize.Default = SSize[Rc];
-	        				SourceModel.ReductionSettings.PercentTriangles = PTria[Rc];
-	        				Rc += 1;
-	        				if (LODs > 2 && (Rc+1) == LODs)
-	        				{
-	                            const int32 Secs = LODR.Sections.Num();
-	        					GEngine->AddOnScreenDebugMessage(-1, 66.f, FColor::Yellow, FString::Printf(TEXT("%s 共 %i 个材质球"), *Nam, Secs));
-	        					if (Secs > 0)
-	        					{
-	        						for (int S=0; S<Secs; S++)	//设置最后一级LOD材质球关闭阴影
-	        						{
-	        							FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get(Rc, S);
-	        							Info.bCastShadow = false;
-	        							StaticMesh->GetSectionInfoMap().Set(Rc, S, Info);
-	        						}
-	        					}
-	        				}
+
+	        			const int32 LODs = StaticMesh->GetNumSourceModels();
+	        			for(int32 i=0; i<LODs; i++){
+	        				StaticMesh->SourceModels[i].ScreenSize.Default = SSize[i];
+	        				StaticMesh->SourceModels[i].ReductionSettings.PercentTriangles = PTria[i];
 	        			}
+	        			
+	        	//！使用了 SetNumSourceModels 后，这里不能使用静态网格渲染数据
+	        			// FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;	//获取静态网格渲染数据
+	        			// int32 Rc = 0;
+	        			// for (FStaticMeshLODResources& LODR : RenderData.LODResources)
+	        			// {
+	        			// 	FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(Rc);	//获取每一级LOD中的ScreenSize值（SourceModel.ScreenSize.Default）
+	        			// 	SourceModel.ScreenSize.Default = SSize[Rc];
+	        			// 	SourceModel.ReductionSettings.PercentTriangles = PTria[Rc];
+	        			// 	Rc += 1;
+	        			// 	if (LODs > 2 && (Rc+1) == LODs)
+	        			// 	{
+	           //                  const int32 Secs = LODR.Sections.Num();
+	        			// 		GEngine->AddOnScreenDebugMessage(-1, 66.f, FColor::Yellow, FString::Printf(TEXT("%s 共 %i 个材质球"), *Nam, Secs));
+	        			// 		if (Secs > 0)
+	        			// 		{
+	        			// 			for (int S=0; S<Secs; S++)	//设置最后一级LOD材质球关闭阴影
+	        			// 			{
+	        			// 				FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get(Rc, S);
+	        			// 				Info.bCastShadow = false;
+	        			// 				StaticMesh->GetSectionInfoMap().Set(Rc, S, Info);
+	        			// 			}
+	        			// 		}
+	        			// 	}
+	        			// }
 	        			Content += FString::Printf(TEXT("%s\n"), *Nam);
 	        			//GEngine->AddOnScreenDebugMessage(-1, 156.f, FColor::Green, FString::Printf(TEXT("%s   LODs:%i)  (%s)"), *Nam, LRN, *SSNS));
                     
@@ -2123,8 +2141,7 @@ FReply SSlateMain::largePropLODsets_Sel()	//批量处理资源管理器中选择
 		                UE_LOG(LogTemp, Warning, TEXT("共修改 %i 个文件"), cou);
 		                GEngine->AddOnScreenDebugMessage(-1, 6.f, FColor::Yellow, FString::Printf(TEXT("共处理 %i 个文件"), cou));
 		            }
-	        	}
-	            else if(AssetData.AssetClass == *USkeletalMesh::StaticClass()->GetName())	//这里的USkeletalMesh前面需要加指针
+	        	}else if(AssetData.AssetClass == *USkeletalMesh::StaticClass()->GetName())	//这里的USkeletalMesh前面需要加指针
 	            {
 		            USkeletalMesh* SKMesh = Cast<USkeletalMesh>(AssetData.GetAsset());
 	            	// const int32 Lods = SKMesh->GetLODNum();
@@ -2185,7 +2202,7 @@ FReply SSlateMain::largePropLODsets_Sel()	//批量处理资源管理器中选择
 	            		
 	            	}
 	            	SKMesh->Modify();
-	            	SKMesh->PostEditChange();
+	            	// SKMesh->PostEditChange();
 	            	SKMesh->MarkPackageDirty();	//更新资源修改
 	            }
             }
@@ -2327,39 +2344,32 @@ FReply SSlateMain::largePropLODsets()	//批量处理LODLargeProp
 					// const int32 Gnl = StaticMesh->GetNumLODs();	//获取LOD数量
         			// StaticMesh->bAutoComputeLODScreenSize = false;	//取消勾选(Auto Compute LOD Distances)
 					// RenderData.ScreenSize;
-        			StaticMesh->SetLODGroup(*LODGroupTxt->GetText().ToString());
-        			StaticMesh->bAutoComputeLODScreenSize = false;
-        			FStaticMeshRenderData& RenderData = *StaticMesh->RenderData;	//获取静态网格渲染数据
-						        			
-        			int32 Rc = 0;
-	                const int32 LODs = StaticMesh->GetNumLODs();
+
         			const float PTval_0 = PT_0->GetValue();
         			const float PTval_1 = PT_1->GetValue();
         			const float PTval_2 = PT_2->GetValue();
         			const float PTval_3 = PT_3->GetValue();
         			TArray<float> SSize = {SS_0->GetValue(), SS_1->GetValue(), SS_2->GetValue(), SS_3->GetValue()};
         			TArray<float> PTria = {(PTval_0/100.0f), (PTval_1/100.0f), (PTval_2/100.0f), (PTval_3/100.0f)};
-        			for (FStaticMeshLODResources& LODR : RenderData.LODResources)
-        			{
-        				FStaticMeshSourceModel& SourceModel = StaticMesh->GetSourceModel(Rc);	//获取每一级LOD中的ScreenSize值（SourceModel.ScreenSize.Default）
-        				SourceModel.ScreenSize.Default = SSize[Rc];
-        				SourceModel.ReductionSettings.PercentTriangles = PTria[Rc];
-        				Rc += 1;
-        				if (LODs > 2 && (Rc+1) == LODs)
-        				{
-        					const int32 Secs = LODR.Sections.Num();
-        					GEngine->AddOnScreenDebugMessage(-1, 66.f, FColor::Yellow, FString::Printf(TEXT("%s 共 %i 个材质球"), *Nam, Secs));
-        					if (Secs > 0)
-        					{
-        						for (int S=0; S<Secs; S++)
-        						{
-        							FMeshSectionInfo Info = StaticMesh->GetSectionInfoMap().Get(Rc, S);
-                                    Info.bCastShadow = false;
-                                    StaticMesh->GetSectionInfoMap().Set(Rc, S, Info);
-        						}
-        					}
-        				}
+
+        			//默认引擎版本使用 SetNumSourceModels 来设置LOD数量
+        			FString LG = LODGroupTxt->GetText().ToString();
+        			StaticMesh->SetLODGroup(*LG);
+        			// StaticMesh->Modify();
+        			if(LG == "SmallProp")
+        				StaticMesh->SetNumSourceModels(2);
+        			if(LG == "LargeProp")
+        				StaticMesh->SetNumSourceModels(3);
+        			if(LG == "LevelArchitecture")
+        				StaticMesh->SetNumSourceModels(4);
+        			StaticMesh->bAutoComputeLODScreenSize = false;
+
+        			const int32 LODs = StaticMesh->GetNumSourceModels();
+        			for(int32 i=0; i<LODs; i++){
+        				StaticMesh->SourceModels[i].ScreenSize.Default = SSize[i];
+        				StaticMesh->SourceModels[i].ReductionSettings.PercentTriangles = PTria[i];
         			}
+					
         			Content += FString::Printf(TEXT("%s\n"), *Nam);
         			//GEngine->AddOnScreenDebugMessage(-1, 156.f, FColor::Green, FString::Printf(TEXT("%s   LODs:%i)  (%s)"), *Nam, LRN, *SSNS));
         			
@@ -2374,7 +2384,7 @@ FReply SSlateMain::largePropLODsets()	//批量处理LODLargeProp
         }
         if (cou > 0)
         {
-            Content += FString::Printf(TEXT("共搜索 %i 个模型文件, 如上 %i 个文件修改\n"),AssetDataList.Num() ,cou);
+            Content += FString::Printf(TEXT("\n共搜索 %i 个模型文件, 如上 %i 个文件修改\n"),AssetDataList.Num() ,cou);
             UE_LOG(LogTemp, Log, TEXT("【%s】"), *FileName);
             FFileHelper::SaveStringToFile(Content, *FileName, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM);
             //打开创建的txt文本
