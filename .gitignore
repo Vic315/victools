@@ -82,3 +82,6 @@ Content/Script/.vscode/settings.json
 # Archive
 Archive/*
 
+/Content/StarterContent
+/Content/AnimatedPondFish
+/Content/HoudiniEngine
