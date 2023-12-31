@@ -3905,10 +3905,13 @@ FReply SSlateMain::SelSameObj()
 		{
 			UGameplayStatics::GetAllActorsOfClass(World, AStaticMeshActor::StaticClass(), ActorsToFind);
 		}
-		const FString selname = sel[0]->GetName().LeftChop(log10(matrixNum->GetValue())+1); //提取第一个选择的对象名去掉最后几个字符,用矩阵数的位数+3
+		FString AName = sel[0]->GetActorLabel();
+		const int32 selNcun = (static_cast<float>(AName.Len()) * 0.75f);	//取名称的前面三分之二作为相似名判断
+		const FString selname = AName.Left(selNcun); //提取第一个选择的对象名去掉最后几个字符,用矩阵数的位数+
 		SelectionSet->DeselectAll();
 		for (AActor* inActor: ActorsToFind){
-			if(inActor->GetName().Find(selname)>-1)
+			FString inA = inActor->GetActorLabel();
+			if(inA.Left(selNcun) == selname)
 				SelectionSet->Select(inActor);
 		}
 		SelectionSet->ReloadConfig();
